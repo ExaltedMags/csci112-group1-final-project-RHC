@@ -29,7 +29,7 @@ export default function TripView({ trip }: TripViewProps) {
       
       if (!res.ok) throw new Error('Selection failed')
       
-      router.push('/history') 
+      router.push(`/handoff/${provider}/${trip._id}`)
       router.refresh()
     } catch (error) {
       console.error(error)
