@@ -30,9 +30,9 @@ const formSchema = z.object({
 })
 
 interface HistoryEntry {
-  originLabel: string;
-  destinationLabel: string;
-  createdAt: string;
+  originName: string;
+  destinationName: string;
+  requestedAt: string;
 }
 
 const POPULAR_LOCATIONS = [
@@ -68,8 +68,8 @@ export default function SearchPage() {
           const locations = new Set<string>()
           if (data.history && Array.isArray(data.history)) {
             data.history.forEach((entry: HistoryEntry) => {
-              if (entry.destinationLabel) locations.add(entry.destinationLabel)
-              if (entry.originLabel) locations.add(entry.originLabel)
+              if (entry.destinationName) locations.add(entry.destinationName)
+              if (entry.originName) locations.add(entry.originName)
             })
           }
           // Take top 6 unique recent places

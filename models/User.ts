@@ -2,11 +2,9 @@ import mongoose, { Schema, Document, Model } from 'mongoose';
 
 export interface IUserHistoryEntry {
   tripId: mongoose.Types.ObjectId;
-  originLabel: string;
-  destinationLabel: string;
-  chosenProviderCode: string;
-  chosenProviderName: string;
-  createdAt: Date;
+  originName: string;
+  destinationName: string;
+  requestedAt: Date;
 }
 
 export interface IUser extends Omit<Document, '_id'> {
@@ -20,11 +18,9 @@ export interface IUser extends Omit<Document, '_id'> {
 
 const UserHistorySchema = new Schema<IUserHistoryEntry>({
   tripId: { type: Schema.Types.ObjectId, ref: 'Trip', required: true },
-  originLabel: { type: String, required: true },
-  destinationLabel: { type: String, required: true },
-  chosenProviderCode: { type: String, required: true },
-  chosenProviderName: { type: String, required: true },
-  createdAt: { type: Date, default: Date.now }
+  originName: { type: String, required: true },
+  destinationName: { type: String, required: true },
+  requestedAt: { type: Date, required: true }
 }, { _id: false });
 
 const UserSchema = new Schema<IUser>({
@@ -36,4 +32,3 @@ const UserSchema = new Schema<IUser>({
 
 // Prevent model recompilation error in Next.js
 export const User: Model<IUser> = mongoose.models.User || mongoose.model<IUser>('User', UserSchema);
-

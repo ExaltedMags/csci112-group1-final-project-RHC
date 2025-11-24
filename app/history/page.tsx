@@ -1,5 +1,6 @@
 import connectToDatabase from "@/lib/mongoose"
 import { Trip, ITrip } from "@/models/Trip"
+import { ReferralLog } from "@/models/ReferralLog"
 import HistoryView from "./history-view"
 
 // Define types for aggregation result
@@ -41,6 +42,64 @@ export default async function HistoryPage() {
     }
   ]);
 
-  return <HistoryView history={history} analytics={analyticsDocs} />
-}
+  // 3. Savings Analytics
+  const savingsStats = await Trip.aggregate([
+    { 
+      $match: { 
+        status: 'BOOKED', 
+        userId: 'demo-user-123',
+        selectedQuote: { $exists: true }
+      } 
+    },
+    {
+      $addFields: {
+        cheapestFare: { $min: "$quotes.minFare" },
+        selectedFare: "$selectedQuote.minFare"
+      }
+    },
+    {
+      $addFields: {
+        overpay: { 
+          $max: [ 0, { $subtract: ["$selectedFare", "$cheapestFare"] } ]
+        }
+      }
+    },
+    {
+      $group: {
+        _id: null,
+        totalTrips: { $sum: 1 },
+        tripsWithOverpay: {
+           $sum: { $cond: [ { $gt: ["$overpay", 0] }, 1, 0 ] }
+        },
+        totalOverpay: { $sum: "$overpay" }
+      }
+    }
+  ]);
+  
+  const savingsData = savingsStats.length > 0 ? savingsStats[0] : { totalTrips: 0, tripsWithOverpay: 0, totalOverpay: 0 };
+  const avgOverpayPerTrip = savingsData.totalTrips > 0 
+      ? Math.round(savingsData.totalOverpay / savingsData.totalTrips) 
+      : 0;
 
+  // 4. Referral Analytics
+  const referralStats = await ReferralLog.aggregate([
+       { $match: { userId: 'demo-user-123' } },
+       {
+         $group: {
+            _id: "$providerCode",
+            count: { $sum: 1 }
+         }
+       },
+       { $sort: { count: -1 } }
+  ]);
+
+  return <HistoryView 
+    history={history} 
+    analytics={analyticsDocs} 
+    savings={{
+      totalOverpay: savingsData.totalOverpay,
+      avgOverpayPerTrip
+    }}
+    referrals={referralStats.map(r => ({ providerCode: r._id, count: r.count }))}
+  />
+}

@@ -51,20 +51,18 @@ export async function POST(
     });
 
     // 3. Update User History (push and trim)
+    const summaryEntry = {
+      tripId: trip._id,
+      originName: trip.origin,
+      destinationName: trip.destination,
+      requestedAt: trip.createdAt ?? new Date(),
+    };
+
     await User.findByIdAndUpdate(userId, {
       $push: {
         history: {
-          $each: [
-            {
-              tripId: trip._id,
-              originLabel: trip.origin,
-              destinationLabel: trip.destination,
-              chosenProviderCode: selectedQuote.provider,
-              chosenProviderName: PROVIDER_LABELS[selectedQuote.provider] || selectedQuote.provider,
-              createdAt: new Date(),
-            },
-          ],
-          $slice: -20, // Keep only the last 20 entries
+          $each: [summaryEntry],
+          $slice: -10, // keep only last 10 entries
         },
       },
     });

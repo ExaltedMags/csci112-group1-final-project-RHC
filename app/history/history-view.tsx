@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { formatDistanceToNow } from "date-fns"
-import { Car, Bike, BarChart3 } from "lucide-react"
+import { Car, Bike, BarChart3, PiggyBank } from "lucide-react"
 
 interface HistoryViewProps {
   history: (ITrip & { _id: string })[];
@@ -14,18 +14,40 @@ interface HistoryViewProps {
     count: number;
     avgFare: number;
   }[];
+  savings: {
+    totalOverpay: number;
+    avgOverpayPerTrip: number;
+  };
+  referrals: {
+    providerCode: string;
+    count: number;
+  }[];
 }
 
-export default function HistoryView({ history, analytics }: HistoryViewProps) {
+export default function HistoryView({ history, analytics, savings, referrals }: HistoryViewProps) {
   const totalTrips = analytics.reduce((acc, curr) => acc + curr.count, 0)
   const topProvider = analytics.sort((a, b) => b.count - a.count)[0]
 
   return (
     <div className="space-y-8">
-      <h1 className="text-3xl font-bold tracking-tight">Trip History</h1>
+      <div className="flex flex-col gap-2">
+        <h1 className="text-3xl font-bold tracking-tight">Trip History</h1>
+        
+        {/* Referrals Badge/List */}
+        {referrals.length > 0 && (
+          <div className="flex flex-wrap gap-2 items-center">
+               <span className="text-sm text-muted-foreground">Referral clicks:</span>
+               {referrals.map(r => (
+                  <Badge key={r.providerCode} variant="secondary" className="text-xs">
+                     {r.providerCode} {r.count}
+                  </Badge>
+               ))}
+          </div>
+        )}
+      </div>
 
       {/* Analytics Summary */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Trips</CardTitle>
@@ -63,6 +85,23 @@ export default function HistoryView({ history, analytics }: HistoryViewProps) {
             <p className="text-xs text-muted-foreground">
               Estimated average
             </p>
+          </CardContent>
+        </Card>
+        
+        {/* New Savings Card */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Savings Opportunity</CardTitle>
+            <PiggyBank className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">₱{savings.totalOverpay}</div>
+            <p className="text-xs text-muted-foreground">
+              Potential savings
+            </p>
+             <div className="mt-2 text-xs text-muted-foreground border-t pt-2">
+                Avg extra per trip: ₱{savings.avgOverpayPerTrip}
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -130,4 +169,3 @@ function StatusBadge({ status }: { status: string }) {
   if (status === 'COMPLETED') return <Badge variant="secondary">Completed</Badge>
   return <Badge variant="outline">Searched</Badge>
 }
-
