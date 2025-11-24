@@ -1,8 +1,8 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { ITrip, IQuote } from "@/models/Trip"
+import { ITrip } from "@/models/Trip"
 import { PROVIDER_LABELS } from "@/lib/providers/adapters"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -19,9 +19,9 @@ import {
   FileText, 
   Navigation2, 
   MoreHorizontal,
-  ShieldCheck,
-  Gift
+  ShieldCheck
 } from "lucide-react"
+import type { LucideIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface HandoffViewProps {
@@ -35,7 +35,7 @@ const PROVIDER_THEME: Record<string, {
   hover: string,
   text: string,
   bg: string,
-  icon: any 
+  icon: LucideIcon 
 }> = {
   GrabPH: { 
     accent: "bg-green-600", 
@@ -283,7 +283,7 @@ export default function HandoffView({ trip, providerId }: HandoffViewProps) {
         {/* Simulated Toast Message */}
         {isBooking && (
            <div className="absolute bottom-20 left-4 right-4 bg-black/80 text-white text-sm py-2 px-4 rounded-lg shadow-lg animate-in fade-in slide-in-from-bottom-4 text-center z-50">
-            In a real app, this would open the provider's app...
+            In a real app, this would open the provider&apos;s app...
           </div>
         )}
 

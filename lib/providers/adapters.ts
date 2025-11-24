@@ -1,5 +1,6 @@
 export interface ProviderQuote {
   provider: string;
+  fare: number; // Single fare value (typically minFare or average)
   minFare: number;
   maxFare: number;
   eta: number; // minutes
@@ -26,26 +27,47 @@ export function estimateDistance(origin: string, destination: string): number {
   return Math.max(1.5, parseFloat((baseDist * variance).toFixed(1)));
 }
 
+/**
+ * Calculate surge multiplier based on location and time
+ * Makati/BGC/Ortigas pickup and rush hours increase surge
+ */
+function calculateGrabSurge(originLabel?: string): number {
+  const now = new Date();
+  const hour = now.getHours();
+  const isRushHour = (hour >= 7 && hour <= 9) || (hour >= 17 && hour <= 19);
+  
+  const premiumAreas = ['makati', 'bgc', 'ortigas', 'bonifacio'];
+  const originLower = originLabel?.toLowerCase() || '';
+  const isPremiumArea = premiumAreas.some(area => originLower.includes(area));
+  
+  if (isPremiumArea && isRushHour) {
+    return 1.5 + Math.random() * 0.5; // 1.5-2.0
+  } else if (isPremiumArea || isRushHour) {
+    return 1.2 + Math.random() * 0.3; // 1.2-1.5
+  }
+  return 1.0;
+}
+
 // 1. GrabPH Adapter (4-wheel)
-export function getGrabPHQuote(distanceKm: number): ProviderQuote {
-  // Base: 45 PHP, Per KM: 15 PHP
-  // Surge: Randomly triggered (30% chance)
-  const isSurge = Math.random() > 0.7;
-  const surgeMultiplier = isSurge ? (1.2 + Math.random() * 0.8) : 1.0;
-  
-  const baseFare = 45;
+export function getGrabPHQuote(distanceKm: number, durationMinutes: number, originLabel?: string): ProviderQuote {
+  // Real PH fare matrix: base=45, perKm=15, perMinute=2
+  const base = 45;
   const perKm = 15;
-  const rawFare = (baseFare + (perKm * distanceKm)) * surgeMultiplier;
+  const perMinute = 2;
   
-  // Range +/- 10%
-  const minFare = Math.floor(rawFare * 0.9);
-  const maxFare = Math.ceil(rawFare * 1.1);
+  const preSurge = base + (perKm * distanceKm) + (perMinute * durationMinutes);
+  const surgeMultiplier = calculateGrabSurge(originLabel);
+  const isSurge = surgeMultiplier > 1.0;
+  
+  const minFare = Math.floor(preSurge * surgeMultiplier);
+  const maxFare = Math.ceil(minFare * 1.1);
   
   return {
     provider: 'GrabPH',
+    fare: minFare, // Use minFare as the fare value
     minFare,
     maxFare,
-    eta: Math.ceil(5 + (distanceKm * 2) + (Math.random() * 5)), // simulated ETA
+    eta: Math.ceil(durationMinutes), // Use real duration from ORS
     surgeMultiplier: parseFloat(surgeMultiplier.toFixed(1)),
     isSurge,
     category: '4-wheel'
@@ -54,23 +76,33 @@ export function getGrabPHQuote(distanceKm: number): ProviderQuote {
 export const getGrabPhQuote = getGrabPHQuote;
 
 // 2. Angkas Adapter (2-wheel)
-export function getAngkasQuote(distanceKm: number): ProviderQuote {
-  // Base: 50 PHP (first 2km), Per KM: 10 PHP (after)
-  // Surge: Lower chance
-  const isSurge = Math.random() > 0.8;
-  const surgeMultiplier = isSurge ? (1.1 + Math.random() * 0.4) : 1.0;
+// TWG matrix: First 2km = 50, 2-7km = +10/km, Beyond 7km = +15/km
+export function getAngkasQuote(distanceKm: number, durationMinutes: number): ProviderQuote {
+  let rawFare = 50; // First 2km
   
-  let rawFare = 50;
-  if (distanceKm > 2) {
+  if (distanceKm > 7) {
+    // Beyond 7km: +15/km
+    rawFare += (distanceKm - 7) * 15;
+    rawFare += (7 - 2) * 10; // 2-7km: +10/km
+  } else if (distanceKm > 2) {
+    // 2-7km: +10/km
     rawFare += (distanceKm - 2) * 10;
   }
+  
+  // Optional surge: 1.0-1.4
+  const isSurge = Math.random() > 0.7;
+  const surgeMultiplier = isSurge ? (1.0 + Math.random() * 0.4) : 1.0;
   rawFare *= surgeMultiplier;
+  
+  const minFare = Math.floor(rawFare);
+  const maxFare = Math.ceil(rawFare * 1.05); // tighter spread
   
   return {
     provider: 'Angkas',
-    minFare: Math.floor(rawFare),
-    maxFare: Math.ceil(rawFare * 1.05), // tighter spread
-    eta: Math.ceil(3 + (distanceKm * 1.5) + (Math.random() * 3)), // faster than car
+    fare: minFare, // Use minFare as the fare value
+    minFare,
+    maxFare,
+    eta: Math.ceil(durationMinutes * 0.7), // MC is faster, ~70% of car time
     surgeMultiplier: parseFloat(surgeMultiplier.toFixed(1)),
     isSurge,
     category: '2-wheel'
@@ -78,23 +110,33 @@ export function getAngkasQuote(distanceKm: number): ProviderQuote {
 }
 
 // 3. JoyRideMC Adapter (2-wheel)
-export function getJoyRideQuote(distanceKm: number): ProviderQuote {
-  // Competitive pricing
-  // Base: 45 PHP (first 2km), Per KM: 10 PHP
-  const isSurge = Math.random() > 0.85;
-  const surgeMultiplier = isSurge ? (1.1 + Math.random() * 0.3) : 1.0;
+// TWG matrix: First 2km = 50, 2-7km = +10/km, Beyond 7km = +15/km
+export function getJoyRideQuote(distanceKm: number, durationMinutes: number): ProviderQuote {
+  let rawFare = 50; // First 2km
   
-  let rawFare = 45;
-  if (distanceKm > 2) {
+  if (distanceKm > 7) {
+    // Beyond 7km: +15/km
+    rawFare += (distanceKm - 7) * 15;
+    rawFare += (7 - 2) * 10; // 2-7km: +10/km
+  } else if (distanceKm > 2) {
+    // 2-7km: +10/km
     rawFare += (distanceKm - 2) * 10;
   }
+  
+  // Optional surge: 1.0-1.4
+  const isSurge = Math.random() > 0.75;
+  const surgeMultiplier = isSurge ? (1.0 + Math.random() * 0.4) : 1.0;
   rawFare *= surgeMultiplier;
+  
+  const minFare = Math.floor(rawFare);
+  const maxFare = Math.ceil(rawFare * 1.05);
   
   return {
     provider: 'JoyRideMC',
-    minFare: Math.floor(rawFare),
-    maxFare: Math.ceil(rawFare * 1.05),
-    eta: Math.ceil(4 + (distanceKm * 1.6) + (Math.random() * 3)),
+    fare: minFare, // Use minFare as the fare value
+    minFare,
+    maxFare,
+    eta: Math.ceil(durationMinutes * 0.75), // MC is faster, ~75% of car time
     surgeMultiplier: parseFloat(surgeMultiplier.toFixed(1)),
     isSurge,
     category: '2-wheel'
@@ -102,16 +144,18 @@ export function getJoyRideQuote(distanceKm: number): ProviderQuote {
 }
 export const getJoyRideMcQuote = getJoyRideQuote;
 
-export async function getAllQuotes(origin: string, destination: string): Promise<{ quotes: ProviderQuote[], distanceKm: number }> {
+export async function getAllQuotes(
+  distanceKm: number,
+  durationMinutes: number,
+  originLabel?: string
+): Promise<{ quotes: ProviderQuote[], distanceKm: number }> {
   // Simulate API latency
   await new Promise(resolve => setTimeout(resolve, 800));
   
-  const distanceKm = estimateDistance(origin, destination);
-  
   const quotes = [
-    getGrabPHQuote(distanceKm),
-    getAngkasQuote(distanceKm),
-    getJoyRideQuote(distanceKm)
+    getGrabPHQuote(distanceKm, durationMinutes, originLabel),
+    getAngkasQuote(distanceKm, durationMinutes),
+    getJoyRideQuote(distanceKm, durationMinutes)
   ];
   
   // Sort by price ascending

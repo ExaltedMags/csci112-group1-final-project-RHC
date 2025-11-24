@@ -15,6 +15,17 @@ export interface ITrip extends Document {
   origin: string;
   destination: string;
   distanceKm: number;
+  durationMinutes: number;
+  originLocation?: {
+    label: string;
+    lat: number;
+    lng: number;
+  };
+  destinationLocation?: {
+    label: string;
+    lat: number;
+    lng: number;
+  };
   status: 'SEARCHED' | 'BOOKED' | 'COMPLETED';
   quotes: IQuote[];
   selectedQuote?: IQuote;
@@ -36,6 +47,17 @@ const TripSchema = new Schema<ITrip>({
   origin: { type: String, required: true },
   destination: { type: String, required: true },
   distanceKm: { type: Number, required: true },
+  durationMinutes: { type: Number, required: true },
+  originLocation: {
+    label: { type: String },
+    lat: { type: Number },
+    lng: { type: Number }
+  },
+  destinationLocation: {
+    label: { type: String },
+    lat: { type: Number },
+    lng: { type: Number }
+  },
   status: { type: String, enum: ['SEARCHED', 'BOOKED', 'COMPLETED'], default: 'SEARCHED' },
   quotes: [QuoteSchema],
   selectedQuote: QuoteSchema,

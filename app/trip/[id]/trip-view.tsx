@@ -7,7 +7,7 @@ import { PROVIDER_LABELS } from "@/lib/providers/adapters"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Loader2, Clock, Car, Bike, CheckCircle2 } from "lucide-react"
+import { Loader2, Clock, Car, Bike } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface TripViewProps {
