@@ -2,8 +2,9 @@ import { NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/mongoose';
 import { Trip, ITrip } from '@/models/Trip';
 import { getAllQuotes, estimateDistance } from '@/lib/providers/adapters';
-import { getRoute, type LatLng } from '@/lib/openrouteservice';
+import { type LatLng } from '@/lib/openrouteservice';
 import { geocodePlace, type GeocodedPlace } from '@/lib/mapbox';
+import { getBestRoute } from '@/lib/route-planner';
 
 type PlacePayload = {
   label: string;
@@ -21,6 +22,16 @@ type SearchBody = {
 
 const MIN_DURATION_MINUTES = 5;
 const AVERAGE_SPEED_KPH = 25;
+const isDev = process.env.NODE_ENV !== 'production';
+
+function logDev(message: string, payload?: unknown) {
+  if (!isDev) return;
+  if (payload !== undefined) {
+    console.info(`[trips-search] ${message}`, payload);
+  } else {
+    console.info(`[trips-search] ${message}`);
+  }
+}
 
 function estimateDurationFromDistance(distanceKm: number): number {
   const duration = (distanceKm / AVERAGE_SPEED_KPH) * 60;
@@ -66,34 +77,53 @@ export async function POST(req: Request) {
       }
     }
 
+    logDev('Geocoding summary', {
+      origin: {
+        supplied: Boolean(body.originPlace),
+        hasLatLng: Boolean(originLatLng),
+        geocoded: Boolean(originGeocoded),
+      },
+      destination: {
+        supplied: Boolean(body.destinationPlace),
+        hasLatLng: Boolean(destinationLatLng),
+        geocoded: Boolean(destinationGeocoded),
+      },
+    });
+
     const resolvedOriginLabel = originGeocoded?.label ?? originLabel;
     const resolvedDestinationLabel = destinationGeocoded?.label ?? destinationLabel;
 
     let distanceKm = 0;
     let durationMinutes = MIN_DURATION_MINUTES;
     let routeCoordinates: { lat: number; lng: number }[] | undefined;
+    let routeSource: 'ORS' | 'MAPBOX' | undefined;
     let usedFallback = false;
 
     if (originLatLng && destinationLatLng) {
-      const route = await getRoute(originLatLng, destinationLatLng);
-      if (route) {
-        distanceKm = route.distanceKm;
-        durationMinutes = route.durationMinutes;
-        if (route.geometry && route.geometry.length >= 2) {
-          routeCoordinates = route.geometry;
-        }
-        console.info(`[trips-search] Mapbox coordinates + ORS routing`, {
-          origin: resolvedOriginLabel,
-          destination: resolvedDestinationLabel,
-          distanceKm,
-          durationMinutes,
-        });
+      const bestRoute = await getBestRoute(originLatLng, destinationLatLng, {
+        loggerPrefix: '[trips-search]',
+      });
+
+      if (bestRoute) {
+        distanceKm = bestRoute.distanceKm;
+        durationMinutes = bestRoute.durationMinutes;
+        routeCoordinates = bestRoute.geometry;
+        routeSource = bestRoute.source;
       } else {
         usedFallback = true;
       }
     } else {
       usedFallback = true;
     }
+
+    logDev('Routing result', {
+      attempted: Boolean(originLatLng && destinationLatLng),
+      success: !usedFallback,
+      source: routeSource ?? 'ESTIMATE',
+      distanceKm,
+      durationMinutes,
+      geometryPoints: routeCoordinates?.length ?? 0,
+    });
 
     if (usedFallback) {
       distanceKm = estimateDistance(resolvedOriginLabel, resolvedDestinationLabel);
@@ -138,6 +168,7 @@ export async function POST(req: Request) {
       tripData.routeGeometry = {
         coordinates: routeCoordinates,
       };
+      tripData.routeSource = routeSource;
     }
 
     const trip = await Trip.create(tripData);

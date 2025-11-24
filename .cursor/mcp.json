@@ -1,0 +1,17 @@
+{
+  "servers": {
+    "mongodb": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "mongodb-mcp-server@latest",
+        "--readOnly"
+      ],
+      "env": {
+        "MDB_MCP_CONNECTION_STRING": "mongodb+srv://csci112_user:csci112project@csci112-rhc.rk89eny.mongodb.net/?appName=csci112-rhc"
+      }
+    }
+  }
+}
+

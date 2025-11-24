@@ -32,6 +32,7 @@ export interface ITrip extends Document {
       lng: number;
     }[];
   };
+  routeSource?: 'ORS' | 'MAPBOX';
   status: 'SEARCHED' | 'BOOKED' | 'COMPLETED';
   quotes: IQuote[];
   selectedQuote?: IQuote;
@@ -72,6 +73,7 @@ const TripSchema = new Schema<ITrip>({
   routeGeometry: {
     coordinates: { type: [CoordinateSchema], default: undefined }
   },
+  routeSource: { type: String, enum: ['ORS', 'MAPBOX'], default: undefined },
   status: { type: String, enum: ['SEARCHED', 'BOOKED', 'COMPLETED'], default: 'SEARCHED' },
   quotes: [QuoteSchema],
   selectedQuote: QuoteSchema,

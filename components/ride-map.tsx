@@ -8,16 +8,19 @@ import "leaflet/dist/leaflet.css"
 import { cn } from "@/lib/utils"
 import { mapTileLayerConfig } from "@/lib/map-tiles"
 
-type TripLocation = {
-  label: string
+type RouteCoordinate = {
   lat: number
   lng: number
+}
+
+type TripLocation = RouteCoordinate & {
+  label: string
 }
 
 interface RideMapProps {
   origin?: TripLocation | null
   destination?: TripLocation | null
-  path?: TripLocation[] | null
+  path?: RouteCoordinate[] | null
   accentColor?: string
   className?: string
   showControls?: boolean
@@ -46,7 +49,7 @@ export function RideMap({
   const safeOrigin = hasOrigin && origin ? origin : FALLBACK_LOCATION
   const safeDestination = hasDestination && destination ? destination : FALLBACK_LOCATION
   const pathPoints = useMemo(
-    () => (Array.isArray(path) ? path.filter(isValidTripLocation) : []),
+    () => (Array.isArray(path) ? path.filter(isValidCoordinate) : []),
     [path],
   )
   const hasPathPolyline = pathPoints.length >= 2
@@ -237,7 +240,7 @@ export function RideMap({
     import("leaflet").then((module) => {
       if (isMounted) {
         // Fix marker icon issue in Webpack
-        // @ts-expect-error
+        // @ts-expect-error Leaflet types omit private _getIconUrl helper
         delete module.Icon.Default.prototype._getIconUrl
         module.Icon.Default.mergeOptions({
           iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
@@ -294,7 +297,7 @@ export function RideMap({
   }
 
   return (
-    <div className={cn("relative w-full min-h-[260px] overflow-hidden", className)}>
+    <div className={cn("relative z-0 isolate w-full min-h-[260px] overflow-hidden", className)}>
       <MapContainer
         center={midpoint}
         zoom={13}
@@ -382,6 +385,13 @@ function createMarkerIcon(leaflet: LeafletLib, color: string) {
 }
 
 function isValidTripLocation(location?: TripLocation | null): location is TripLocation {
+  return (
+    Boolean(location?.label) &&
+    isValidCoordinate(location)
+  )
+}
+
+function isValidCoordinate(location?: RouteCoordinate | null): location is RouteCoordinate {
   return (
     Boolean(location) &&
     typeof location?.lat === "number" &&

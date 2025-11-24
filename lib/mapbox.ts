@@ -41,6 +41,12 @@ const MAX_RESULTS = 8;
 const SEARCHBOX_BASE_URL = 'https://api.mapbox.com/search/searchbox/v1';
 const SEARCHBOX_TYPES = ['poi', 'place', 'locality', 'neighborhood', 'address'];
 const SEARCHBOX_PROXIMITY: [number, number] = [121.0568, 14.5995]; // Metro Manila bias
+const MAPBOX_DIRECTIONS_BASE = 'https://api.mapbox.com/directions/v5';
+
+type BasicLatLng = {
+  lat: number;
+  lng: number;
+};
 
 const PLACE_TYPE_PRIORITY = new Map<string, number>(
   DEFAULT_TYPES.map((type, index) => [type, index]),
@@ -293,6 +299,7 @@ export async function geocodePlace(query: string): Promise<GeocodedPlace | null>
         language: [...DEFAULT_LANGUAGES],
         types: [...DEFAULT_TYPES],
         autocomplete: true,
+        proximity: SEARCHBOX_PROXIMITY,
       })
       .send();
 
@@ -321,6 +328,84 @@ export async function geocodePlace(query: string): Promise<GeocodedPlace | null>
     if (isDev) {
       console.warn('[mapbox] Forward geocode failed:', error);
     }
+    return null;
+  }
+}
+
+function roundToSingleDecimal(value: number) {
+  return Math.round(value * 10) / 10;
+}
+
+export type MapboxRouteResult = {
+  distanceKm: number;
+  durationMinutes: number;
+  geometry: BasicLatLng[];
+};
+
+export async function getMapboxRoute(
+  origin: BasicLatLng,
+  destination: BasicLatLng
+): Promise<MapboxRouteResult | null> {
+  if (!mapboxToken) {
+    if (isDev) {
+      console.warn('[mapbox] Directions requested but MAPBOX token is missing.');
+    }
+    return null;
+  }
+
+  try {
+    const coords = `${origin.lng},${origin.lat};${destination.lng},${destination.lat}`;
+    const url = new URL(`${MAPBOX_DIRECTIONS_BASE}/mapbox/driving/${coords}`);
+    url.searchParams.set('access_token', mapboxToken);
+    url.searchParams.set('geometries', 'geojson');
+    url.searchParams.set('overview', 'full');
+    url.searchParams.set('steps', 'false');
+    url.searchParams.set('alternatives', 'false');
+
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      if (isDev) {
+        console.warn(`[mapbox] Directions failed (${response.status}): ${await response.text()}`);
+      }
+      return null;
+    }
+
+    const data = await response.json();
+    const route = data.routes?.[0];
+    const coordsArray: [number, number][] | undefined = route?.geometry?.coordinates;
+
+    if (!route || !Array.isArray(coordsArray) || coordsArray.length < 2) {
+      if (isDev) {
+        console.warn('[mapbox] Directions response missing geometry');
+      }
+      return null;
+    }
+
+    const geometry = coordsArray
+      .filter(
+        (pair): pair is [number, number] =>
+          Array.isArray(pair) &&
+          pair.length === 2 &&
+          typeof pair[0] === 'number' &&
+          typeof pair[1] === 'number'
+      )
+      .map(([lng, lat]) => ({ lat, lng }));
+
+    if (geometry.length < 2) {
+      return null;
+    }
+
+    const distanceKm = roundToSingleDecimal((route.distance ?? 0) / 1000);
+    const durationMinutes = roundToSingleDecimal((route.duration ?? 0) / 60);
+
+    return {
+      distanceKm,
+      durationMinutes,
+      geometry,
+    };
+  } catch (error) {
+    console.error('[mapbox] Directions exception:', error);
     return null;
   }
 }

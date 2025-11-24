@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { ITrip } from "@/models/Trip"
 import { PROVIDER_LABELS } from "@/lib/providers/adapters"
@@ -12,7 +12,7 @@ import dynamic from "next/dynamic"
 const RideMap = dynamic(() => import("@/components/ride-map").then((mod) => mod.RideMap), {
   ssr: false,
   loading: () => (
-    <div className="flex min-h-[300px] w-full items-center justify-center rounded-[32px] border border-gray-200 bg-gray-50 text-sm text-gray-400">
+    <div className="flex min-h-[320px] w-full items-center justify-center rounded-none bg-gray-50 text-sm text-gray-400">
       Loading map...
     </div>
   ),
@@ -35,6 +35,7 @@ import { cn } from "@/lib/utils"
 interface HandoffViewProps {
   trip: ITrip & { _id: string }
   providerId: string
+  orsEnabled: boolean
 }
 
 // Theme configuration
@@ -81,9 +82,22 @@ const PROVIDER_THEME: Record<string, {
   }
 }
 
-export default function HandoffView({ trip, providerId }: HandoffViewProps) {
+export default function HandoffView({ trip, providerId, orsEnabled }: HandoffViewProps) {
   const router = useRouter()
   const [isBooking, setIsBooking] = useState(false)
+  const isDev = process.env.NODE_ENV !== "production"
+  const missingRouteGeometry = !(trip.routeGeometry?.coordinates?.length ?? 0)
+  const usedMapboxFallback = trip.routeSource === "MAPBOX"
+  const noticeMessage = !isDev
+    ? null
+    : !orsEnabled
+      ? "ORS is disabled in this environment. Enable ORS_API_KEY to render the live route."
+      : missingRouteGeometry
+        ? "This trip is missing route geometry. Check the search API logs to confirm routing."
+        : usedMapboxFallback
+          ? "Using Mapbox Directions fallback for this route (dev-only notice)."
+          : null
+  const showRouteNotice = Boolean(noticeMessage)
   
   // Find relevant quote
   const quote = trip.quotes.find(q => q.provider === providerId) || 
@@ -108,6 +122,30 @@ export default function HandoffView({ trip, providerId }: HandoffViewProps) {
     new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', maximumFractionDigits: 0 }).format(val)
 
   const averageFare = Math.round((quote.minFare + quote.maxFare) / 2)
+
+  useEffect(() => {
+    if (!isDev) {
+      return
+    }
+
+    if (!orsEnabled) {
+      console.warn("[handoff] ORS is disabled (missing API key); route lines unavailable.")
+    }
+
+    if (missingRouteGeometry) {
+      console.warn("[handoff] Trip is missing route geometry; showing markers only.", {
+        tripId: trip._id,
+        hasOriginLocation: Boolean(trip.originLocation),
+        hasDestinationLocation: Boolean(trip.destinationLocation),
+      })
+    }
+
+    if (usedMapboxFallback) {
+      console.warn("[handoff] Mapbox Directions fallback was used for this trip.", {
+        tripId: trip._id,
+      })
+    }
+  }, [isDev, missingRouteGeometry, orsEnabled, usedMapboxFallback, trip._id, trip.destinationLocation, trip.originLocation])
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20 max-w-md mx-auto border-x shadow-xl relative overflow-hidden">
@@ -137,22 +175,28 @@ export default function HandoffView({ trip, providerId }: HandoffViewProps) {
         </Button>
       </div>
 
-      {/* Spacer for fixed header */}
-      <div className="h-16"></div>
+      {/* 2. DIAGNOSTIC BANNER */}
+      {showRouteNotice && noticeMessage && (
+        <div className="px-4 mt-20">
+          <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+            {noticeMessage}
+          </div>
+        </div>
+      )}
 
-      {/* 2. MAP SECTION */}
+      {/* 3. MAP SECTION */}
       <div className="px-4">
         <RideMap
           origin={trip.originLocation}
           destination={trip.destinationLocation}
           path={trip.routeGeometry?.coordinates ?? null}
           accentColor={theme.mapColor}
-          className="h-[300px] w-full rounded-[32px] border border-white shadow-2xl"
+          className="h-[340px] w-full rounded-none"
         />
       </div>
 
-      {/* 3. ROUTE SUMMARY CARD */}
-      <div className="px-4 -mt-6 relative z-10">
+      {/* 4. ROUTE SUMMARY CARD */}
+      <div className="px-4 mt-4">
         <Card className="shadow-lg border-0">
           <div className="p-4 space-y-4">
             {/* Route Details */}
@@ -197,7 +241,7 @@ export default function HandoffView({ trip, providerId }: HandoffViewProps) {
         </Card>
       </div>
 
-      {/* 4. VEHICLE / SERVICE OPTIONS */}
+      {/* 5. VEHICLE / SERVICE OPTIONS */}
       <div className="px-4 mt-4">
         <div className={cn("rounded-xl border-2 p-3 flex items-center justify-between bg-white shadow-sm transition-colors", `border-${providerId === 'GrabPH' ? 'green' : providerId === 'Angkas' ? 'cyan' : 'indigo'}-100`)}>
           <div className="flex items-center gap-4">
@@ -239,7 +283,7 @@ export default function HandoffView({ trip, providerId }: HandoffViewProps) {
         </div>
       </div>
 
-      {/* 5. PAYMENT & PROMO STRIP */}
+      {/* 6. PAYMENT & PROMO STRIP */}
       <div className="px-4 mt-4 mb-24">
         <div className="flex items-center justify-between bg-white py-3 border-t border-b border-gray-100">
           <button className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors">
@@ -265,7 +309,7 @@ export default function HandoffView({ trip, providerId }: HandoffViewProps) {
         </div>
       </div>
 
-      {/* 6. BOOK BUTTON BAR */}
+      {/* 7. BOOK BUTTON BAR */}
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-50 max-w-md mx-auto">
         {/* Simulated Toast Message */}
         {isBooking && (
