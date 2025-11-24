@@ -102,18 +102,29 @@ export default function LocationSearchInput({
         const response = await fetch(`/api/places/search?${params.toString()}`);
 
         if (!response.ok) {
-          throw new Error("Failed to fetch place suggestions");
+          const errorText = await response.text().catch(() => 'Unknown error');
+          throw new Error(`Failed to fetch place suggestions: ${response.status} ${errorText}`);
         }
 
         const data: PlaceSuggestion[] = await response.json();
-        setSuggestions(data);
-        setIsOpen(true);
+        
+        if (!Array.isArray(data)) {
+          console.error("[location-search] Invalid response format:", data);
+          setSuggestions([]);
+          setIsOpen(true);
+          setHasError(false);
+        } else {
+          setSuggestions(data);
+          // Always open dropdown if we have a query, even if no results
+          setIsOpen(true);
+          setHasError(false);
+        }
       } catch (error) {
         if ((error as Error).name !== "AbortError") {
           console.error("[location-search] Failed to fetch suggestions:", error);
         }
         setSuggestions([]);
-        setIsOpen(false);
+        setIsOpen(true); // Show error message in dropdown
         setHasError(true);
       } finally {
         setIsLoading(false);

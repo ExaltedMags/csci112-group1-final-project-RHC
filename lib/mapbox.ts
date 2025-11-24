@@ -142,6 +142,13 @@ async function fetchSearchBoxRetrieve(
 }
 
 async function searchWithSearchBox(trimmedQuery: string): Promise<PlaceSuggestion[]> {
+  if (!mapboxToken) {
+    if (isDev) {
+      console.warn('[mapbox] Search Box lookup skipped: MAPBOX_TOKEN not configured');
+    }
+    return [];
+  }
+
   try {
     const { suggestions, sessionToken } = await fetchSearchBoxSuggestions(trimmedQuery);
 
@@ -184,7 +191,10 @@ async function searchWithSearchBox(trimmedQuery: string): Promise<PlaceSuggestio
 
     return detailed.filter((item): item is PlaceSuggestion => Boolean(item));
   } catch (error) {
-    console.warn('[mapbox] Search Box lookup failed, falling back to geocoder:', error);
+    if (isDev) {
+      console.warn('[mapbox] Search Box lookup failed, falling back to geocoder:', error);
+    }
+    // Return empty to trigger fallback to geocoder
     return [];
   }
 }
@@ -259,13 +269,26 @@ export async function searchPlaces(query: string): Promise<PlaceSuggestion[]> {
     return [];
   }
 
+  // Try SearchBox API first (better results)
   const searchBoxResults = await searchWithSearchBox(trimmedQuery);
 
   if (searchBoxResults.length > 0) {
     return searchBoxResults;
   }
 
-  return searchWithForwardGeocode(trimmedQuery);
+  // Fallback to forward geocoding if SearchBox returns no results
+  const geocodeResults = await searchWithForwardGeocode(trimmedQuery);
+  
+  if (geocodeResults.length > 0) {
+    return geocodeResults;
+  }
+
+  // If both fail and we're in dev, log a warning
+  if (isDev) {
+    console.warn(`[mapbox] No results found for "${trimmedQuery}" via SearchBox or Geocoder`);
+  }
+
+  return [];
 }
 
 export type GeocodedPlace = {

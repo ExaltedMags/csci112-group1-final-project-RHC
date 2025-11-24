@@ -1,0 +1,43 @@
+import { NextResponse } from "next/server"
+
+import connectToDatabase from "@/lib/mongoose"
+import { Trip } from "@/models/Trip"
+import { PROVIDER_LIFECYCLE_STEPS } from "@/lib/provider-lifecycle"
+
+export async function POST(
+  req: Request,
+  props: { params: Promise<{ id: string }> },
+) {
+  const params = await props.params
+
+  try {
+    await connectToDatabase()
+    const trip = await Trip.findById(params.id)
+
+    if (!trip) {
+      return NextResponse.json({ error: "Trip not found" }, { status: 404 })
+    }
+
+    const payload = await req.json().catch(() => ({}))
+    const provider = payload?.provider as string | undefined
+
+    if (provider && trip.selectedQuote && trip.selectedQuote.provider !== provider) {
+      console.warn("[lifecycle] Provider mismatch", {
+        tripId: trip._id.toString(),
+        expected: trip.selectedQuote?.provider,
+        received: provider,
+      })
+    }
+
+    return NextResponse.json({
+      success: true,
+      steps: PROVIDER_LIFECYCLE_STEPS,
+      provider: provider ?? trip.selectedQuote?.provider ?? null,
+    })
+  } catch (error) {
+    console.error("Error starting lifecycle simulation:", error)
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 })
+  }
+}
+
+

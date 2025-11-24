@@ -19,15 +19,29 @@ export default function TripView({ trip }: TripViewProps) {
   const [loadingProvider, setLoadingProvider] = useState<string | null>(null)
 
   const handleSelect = async (provider: string) => {
+    // Get userId from localStorage
+    const stored = localStorage.getItem("ph-ride-user")
+    if (!stored) {
+      console.error("User not authenticated")
+      return
+    }
+
+    const user = JSON.parse(stored)
     setLoadingProvider(provider)
     try {
       const res = await fetch(`/api/trips/${trip._id}/select`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ provider })
+        body: JSON.stringify({ 
+          provider,
+          userId: user.userId // Include userId in request
+        })
       })
       
-      if (!res.ok) throw new Error('Selection failed')
+      if (!res.ok) {
+        const error = await res.json()
+        throw new Error(error.error || 'Selection failed')
+      }
       
       router.push(`/handoff/${provider}/${trip._id}`)
       router.refresh()

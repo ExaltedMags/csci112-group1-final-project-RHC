@@ -7,7 +7,9 @@ export interface IReferralLog extends Document {
   providerName: string;
   bookedMinFare: number;
   bookedMaxFare: number;
+  deviceType: string; // 'mobile', 'tablet', or 'desktop'
   createdAt: Date;
+  updatedAt: Date;
 }
 
 const ReferralLogSchema = new Schema<IReferralLog>({
@@ -16,7 +18,8 @@ const ReferralLogSchema = new Schema<IReferralLog>({
   providerCode: { type: String, required: true },
   providerName: { type: String, required: true },
   bookedMinFare: { type: Number, required: true },
-  bookedMaxFare: { type: Number, required: true }
+  bookedMaxFare: { type: Number, required: true },
+  deviceType: { type: String, required: true, enum: ['mobile', 'tablet', 'desktop'] }
 }, { timestamps: true }); // timestamps: true adds createdAt and updatedAt
 
 // Prevent model recompilation error in Next.js

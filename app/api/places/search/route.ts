@@ -13,13 +13,21 @@ export async function GET(req: Request) {
     const places = await searchPlaces(query);
 
     if (places.length === 0) {
-      console.warn(`[places-search] no results for query "${query.trim()}"`);
+      const isDev = process.env.NODE_ENV !== 'production';
+      if (isDev) {
+        const hasMapboxToken = Boolean(process.env.MAPBOX_TOKEN ?? process.env.NEXT_PUBLIC_MAPBOX_TOKEN);
+        if (!hasMapboxToken) {
+          console.warn(`[places-search] No results for "${query.trim()}" - MAPBOX_TOKEN not configured`);
+        } else {
+          console.warn(`[places-search] No results found for query "${query.trim()}"`);
+        }
+      }
     }
 
     return NextResponse.json(places);
   } catch (error) {
     console.error('[places-search] Failed to fetch suggestions:', error);
-    return NextResponse.json([]);
+    return NextResponse.json([], { status: 500 });
   }
 }
 

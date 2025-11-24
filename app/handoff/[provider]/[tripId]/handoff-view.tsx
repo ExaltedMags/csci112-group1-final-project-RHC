@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { ITrip } from "@/models/Trip"
 import { PROVIDER_LABELS } from "@/lib/providers/adapters"
@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
+import { getUserId } from "@/lib/auth-client"
 import dynamic from "next/dynamic"
 const RideMap = dynamic(() => import("@/components/ride-map").then((mod) => mod.RideMap), {
   ssr: false,
@@ -17,20 +18,24 @@ const RideMap = dynamic(() => import("@/components/ride-map").then((mod) => mod.
     </div>
   ),
 })
-import { 
-  ArrowLeft, 
-  Car, 
-  Bike, 
-  Globe, 
-  CreditCard, 
-  Tag, 
-  FileText, 
-  Navigation2, 
+import {
+  ArrowLeft,
+  Globe,
+  CreditCard,
+  Tag,
+  FileText,
+  Navigation2,
   MoreHorizontal,
-  ShieldCheck
+  ShieldCheck,
 } from "lucide-react"
-import type { LucideIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { MultiStepLoader } from "@/components/ui/multi-step-loader"
+import {
+  PROVIDER_LIFECYCLE_STEPS,
+  PROVIDER_LIFECYCLE_STEP_DURATION_MS,
+  PROVIDER_LIFECYCLE_TOTAL_DURATION_MS,
+} from "@/lib/provider-lifecycle"
+import { getProviderTheme } from "@/lib/provider-theme"
 
 interface HandoffViewProps {
   trip: ITrip & { _id: string }
@@ -38,53 +43,11 @@ interface HandoffViewProps {
   orsEnabled: boolean
 }
 
-// Theme configuration
-const PROVIDER_THEME: Record<string, { 
-  accent: string, 
-  hover: string,
-  text: string,
-  bg: string,
-  mapColor: string,
-  icon: LucideIcon 
-}> = {
-  GrabPH: { 
-    accent: "bg-green-600", 
-    hover: "hover:bg-green-700",
-    text: "text-green-600",
-    bg: "bg-green-50",
-    mapColor: "#16a34a",
-    icon: Car 
-  },
-  JoyRideMC: { 
-    accent: "bg-indigo-600", 
-    hover: "hover:bg-indigo-700",
-    text: "text-indigo-600",
-    bg: "bg-indigo-50",
-    mapColor: "#4f46e5",
-    icon: Bike 
-  },
-  Angkas: { 
-    accent: "bg-cyan-600", 
-    hover: "hover:bg-cyan-700",
-    text: "text-cyan-600",
-    bg: "bg-cyan-50",
-    mapColor: "#0891b2",
-    icon: Bike 
-  },
-  // Fallback
-  default: { 
-    accent: "bg-slate-900", 
-    hover: "hover:bg-slate-800",
-    text: "text-slate-900",
-    bg: "bg-slate-50",
-    mapColor: "#0f172a",
-    icon: Car 
-  }
-}
-
 export default function HandoffView({ trip, providerId, orsEnabled }: HandoffViewProps) {
   const router = useRouter()
   const [isBooking, setIsBooking] = useState(false)
+  const [showLifecycleOverlay, setShowLifecycleOverlay] = useState(false)
+  const loaderTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isDev = process.env.NODE_ENV !== "production"
   const missingRouteGeometry = !(trip.routeGeometry?.coordinates?.length ?? 0)
   const usedMapboxFallback = trip.routeSource === "MAPBOX"
@@ -104,18 +67,84 @@ export default function HandoffView({ trip, providerId, orsEnabled }: HandoffVie
                 trip.selectedQuote || 
                 trip.quotes[0]
 
-  const theme = PROVIDER_THEME[providerId] || PROVIDER_THEME.default
+  const theme = getProviderTheme(providerId)
   const ProviderIcon = theme.icon
+  const navigationDelay = PROVIDER_LIFECYCLE_TOTAL_DURATION_MS + 800
 
-  const handleBook = () => {
+  const scheduleProgressNavigation = () => {
+    if (loaderTimeoutRef.current) {
+      clearTimeout(loaderTimeoutRef.current)
+    }
+
+    loaderTimeoutRef.current = setTimeout(() => {
+      setShowLifecycleOverlay(false)
+      router.push(`/trip/${trip._id}/progress`)
+    }, navigationDelay)
+  }
+
+  useEffect(() => {
+    return () => {
+      if (loaderTimeoutRef.current) {
+        clearTimeout(loaderTimeoutRef.current)
+      }
+    }
+  }, [])
+
+  const handleBook = async () => {
+    if (isBooking) {
+      return
+    }
+
+    const userId = getUserId()
+    if (!userId) {
+      console.error("No user ID available")
+      return
+    }
+
     setIsBooking(true)
-    
-    // Simulate processing
-    setTimeout(() => {
-      // Navigate to history
-      router.push('/history')
-      router.refresh()
-    }, 1500)
+    setShowLifecycleOverlay(true)
+
+    try {
+      // Call the handoff API to log referral
+      const response = await fetch(`/api/trips/${trip._id}/handoff`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ userId }),
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        console.error("Failed to log referral:", error)
+        // Continue even if logging fails (non-critical)
+      } else {
+        const data = await response.json()
+        console.log("Referral logged:", data)
+      }
+
+      try {
+        const lifecycleResponse = await fetch(`/api/trips/${trip._id}/lifecycle`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ userId, provider: providerId }),
+        })
+
+        if (!lifecycleResponse.ok) {
+          const lifecycleError = await lifecycleResponse.json().catch(() => ({}))
+          console.warn("Failed to start lifecycle simulation:", lifecycleError)
+        }
+      } catch (lifecycleError) {
+        console.warn("Lifecycle simulation request failed:", lifecycleError)
+      }
+    } catch (error) {
+      console.error("Error during handoff:", error)
+    } finally {
+      scheduleProgressNavigation()
+      setIsBooking(false)
+    }
   }
 
   const formatCurrency = (val: number) => 
@@ -149,6 +178,13 @@ export default function HandoffView({ trip, providerId, orsEnabled }: HandoffVie
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20 max-w-md mx-auto border-x shadow-xl relative overflow-hidden">
+      <MultiStepLoader
+        loadingStates={PROVIDER_LIFECYCLE_STEPS}
+        loading={showLifecycleOverlay}
+        duration={PROVIDER_LIFECYCLE_STEP_DURATION_MS}
+        loop={false}
+        accentColor={theme.mapColor}
+      />
       
       {/* 1. TOP NAVIGATION BAR */}
       <div className="fixed top-0 w-full max-w-md z-50 bg-white/95 backdrop-blur-sm shadow-sm px-4 py-3 flex items-center justify-between">
@@ -311,13 +347,6 @@ export default function HandoffView({ trip, providerId, orsEnabled }: HandoffVie
 
       {/* 7. BOOK BUTTON BAR */}
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-50 max-w-md mx-auto">
-        {/* Simulated Toast Message */}
-        {isBooking && (
-           <div className="absolute bottom-20 left-4 right-4 bg-black/80 text-white text-sm py-2 px-4 rounded-lg shadow-lg animate-in fade-in slide-in-from-bottom-4 text-center z-50">
-            In a real app, this would open the provider&apos;s app...
-          </div>
-        )}
-
         <div className="flex items-center justify-between mb-3 px-1">
            <div className="flex items-center gap-2">
               <div className={cn("w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold", theme.accent)}>

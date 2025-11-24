@@ -18,6 +18,7 @@ type SearchBody = {
   destinationPlace?: PlacePayload;
   origin?: string;
   destination?: string;
+  userId: string; // Required: current user's ID
 };
 
 const MIN_DURATION_MINUTES = 5;
@@ -50,6 +51,18 @@ export async function POST(req: Request) {
   try {
     await connectToDatabase();
     const body: SearchBody = await req.json();
+
+    // Validate userId
+    if (!body.userId || typeof body.userId !== 'string' || body.userId.trim() === '') {
+      // Dev fallback: allow demo user in development
+      const isDev = process.env.NODE_ENV !== 'production';
+      const allowDemo = process.env.ALLOW_DEMO_USER === 'true';
+      if (isDev && allowDemo) {
+        body.userId = 'demo-user-123';
+      } else {
+        return NextResponse.json({ error: 'User ID is required' }, { status: 401 });
+      }
+    }
 
     const originLabel = body.originPlace?.label ?? body.origin;
     const destinationLabel = body.destinationPlace?.label ?? body.destination;
@@ -145,7 +158,7 @@ export async function POST(req: Request) {
       durationMinutes,
       quotes,
       status: 'SEARCHED',
-      userId: 'demo-user-123',
+      userId: body.userId, // Use userId from request
     };
 
     if (originLatLng) {

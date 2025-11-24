@@ -9,6 +9,7 @@ import { Loader2, Navigation, ArrowUpDown, History } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import LocationSearchInput from "@/components/location-search-input"
 import type { PlaceSuggestion } from "@/lib/mapbox"
+import { AuthGuard } from "@/components/auth-guard"
 
 interface HistoryEntry {
   originName: string;
@@ -38,7 +39,12 @@ export default function SearchPage() {
   useEffect(() => {
     async function fetchHistory() {
       try {
-        const res = await fetch('/api/users/demo-user-123/history')
+        // Get userId from localStorage
+        const stored = localStorage.getItem("ph-ride-user")
+        if (!stored) return
+
+        const user = JSON.parse(stored)
+        const res = await fetch(`/api/users/${user.userId}/history`)
         if (res.ok) {
           const data = await res.json()
           // Extract unique locations from history
@@ -76,6 +82,14 @@ export default function SearchPage() {
     event.preventDefault()
     if (!originPlace || !destinationPlace) return
 
+    // Get userId from localStorage
+    const stored = localStorage.getItem("ph-ride-user")
+    if (!stored) {
+      setErrorMessage("Please sign in to search for trips")
+      return
+    }
+
+    const user = JSON.parse(stored)
     setIsLoading(true)
     setErrorMessage(null)
     try {
@@ -87,6 +101,7 @@ export default function SearchPage() {
           destinationPlace,
           origin: originPlace.label,
           destination: destinationPlace.label,
+          userId: user.userId, // Include userId in request
         }),
       })
 
@@ -156,7 +171,8 @@ export default function SearchPage() {
   }
 
   return (
-    <div className="flex flex-col justify-center items-center min-h-[calc(100vh-4rem)] p-4 bg-gradient-to-b from-slate-50 via-slate-50 to-slate-100">
+    <AuthGuard>
+      <div className="flex flex-col justify-center items-center min-h-[calc(100vh-4rem)] p-4 bg-gradient-to-b from-slate-50 via-slate-50 to-slate-100">
       <Card className="w-full max-w-md border-0 sm:border shadow-none sm:shadow-xl sm:border-slate-100 bg-transparent sm:bg-white/95 sm:backdrop-blur">
         <CardHeader className="px-0 sm:px-6 pb-2">
           <CardTitle className="text-2xl font-bold text-slate-900 tracking-tight">Where to?</CardTitle>
@@ -292,5 +308,6 @@ export default function SearchPage() {
         </CardContent>
       </Card>
     </div>
+    </AuthGuard>
   )
 }

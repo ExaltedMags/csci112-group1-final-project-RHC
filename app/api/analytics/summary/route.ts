@@ -6,13 +6,28 @@ import { PROVIDER_LABELS } from '@/lib/providers/adapters';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
     await connectToDatabase();
 
+    // Get userId from query params
+    const { searchParams } = new URL(req.url);
+    let userId = searchParams.get('userId');
+
+    // Dev fallback: allow demo user in development
+    const isDev = process.env.NODE_ENV !== 'production';
+    const allowDemo = process.env.ALLOW_DEMO_USER === 'true';
+    if (!userId && isDev && allowDemo) {
+      userId = 'demo-user-123';
+    }
+
+    if (!userId) {
+      return NextResponse.json({ error: 'User ID is required' }, { status: 401 });
+    }
+
     // 1. Existing Aggregation: Provider stats (count, avgFare)
     const providerStats = await Trip.aggregate([
-      { $match: { status: 'BOOKED', userId: 'demo-user-123' } },
+      { $match: { status: 'BOOKED', userId } },
       {
         $group: {
           _id: "$selectedQuote.provider",
@@ -39,7 +54,7 @@ export async function GET() {
       { 
         $match: { 
           status: 'BOOKED', 
-          userId: 'demo-user-123',
+          userId,
           selectedQuote: { $exists: true }
         } 
       },
@@ -80,9 +95,9 @@ export async function GET() {
       avgOverpayPerTrip
     };
 
-    // 3. Optional: Referral Analytics
+    // 3. Referral Analytics (by provider)
     const referralStats = await ReferralLog.aggregate([
-       { $match: { userId: 'demo-user-123' } },
+       { $match: { userId } },
        {
          $group: {
             _id: "$providerCode",
@@ -97,12 +112,52 @@ export async function GET() {
       count: item.count
     }));
 
+    // 4. Optional: Referral Analytics by Device Type
+    const referralStatsByDevice = await ReferralLog.aggregate([
+       { $match: { userId } },
+       {
+         $group: {
+            _id: "$deviceType",
+            count: { $sum: 1 }
+         }
+       },
+       { $sort: { count: -1 } }
+    ]);
+
+    const referralsByDeviceType = referralStatsByDevice.map(item => ({
+      deviceType: item._id,
+      count: item.count
+    }));
+
+    // 5. Optional: Referral Analytics by Provider + Device Type
+    const referralStatsByProviderAndDevice = await ReferralLog.aggregate([
+       { $match: { userId } },
+       {
+         $group: {
+            _id: {
+              providerCode: "$providerCode",
+              deviceType: "$deviceType"
+            },
+            count: { $sum: 1 }
+         }
+       },
+       { $sort: { count: -1 } }
+    ]);
+
+    const referralsByProviderAndDevice = referralStatsByProviderAndDevice.map(item => ({
+      providerCode: item._id.providerCode,
+      deviceType: item._id.deviceType,
+      count: item.count
+    }));
+
     return NextResponse.json({
       totalTrips,
       perProvider,
       favoriteProvider,
       savings,
-      referralsPerProvider
+      referralsPerProvider,
+      referralsByDeviceType,
+      referralsByProviderAndDevice
     });
   } catch (error) {
     console.error('Error fetching analytics summary:', error);

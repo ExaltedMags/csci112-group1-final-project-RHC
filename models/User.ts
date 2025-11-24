@@ -7,10 +7,9 @@ export interface IUserHistoryEntry {
   requestedAt: Date;
 }
 
-export interface IUser extends Omit<Document, '_id'> {
-  _id: string; // we will use the same string as Trip.userId, e.g. "demo-user-123"
+export interface IUser extends Document {
   name?: string;
-  email?: string;
+  email: string;
   history: IUserHistoryEntry[];
   createdAt: Date;
   updatedAt: Date;
@@ -24,9 +23,8 @@ const UserHistorySchema = new Schema<IUserHistoryEntry>({
 }, { _id: false });
 
 const UserSchema = new Schema<IUser>({
-  _id: { type: String, required: true },
   name: { type: String },
-  email: { type: String },
+  email: { type: String, required: true, unique: true, lowercase: true, trim: true },
   history: [UserHistorySchema]
 }, { timestamps: true });
 

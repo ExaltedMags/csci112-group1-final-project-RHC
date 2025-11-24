@@ -24,6 +24,10 @@ interface RideMapProps {
   accentColor?: string
   className?: string
   showControls?: boolean
+  /** Optional driver position to show on map */
+  driverPosition?: RouteCoordinate | null
+  /** Whether driver is on a motorcycle (affects icon) */
+  driverIsMC?: boolean
 }
 
 const FALLBACK_LOCATION = {
@@ -41,6 +45,8 @@ export function RideMap({
   accentColor = "#0f172a",
   className,
   showControls = true,
+  driverPosition,
+  driverIsMC = false,
 }: RideMapProps) {
   const hasOrigin = isValidTripLocation(origin)
   const hasDestination = isValidTripLocation(destination)
@@ -264,6 +270,15 @@ export function RideMap({
     () => (leafletLib ? createMarkerIcon(leafletLib, accentColor) : undefined),
     [leafletLib, accentColor],
   )
+  const driverIcon = useMemo<DivIcon | undefined>(
+    () => (leafletLib ? createDriverIcon(leafletLib, accentColor, driverIsMC) : undefined),
+    [leafletLib, accentColor, driverIsMC],
+  )
+
+  const hasDriverPosition = isValidCoordinate(driverPosition)
+  const driverPoint: LatLngExpression | null = hasDriverPosition && driverPosition
+    ? [driverPosition.lat, driverPosition.lng]
+    : null
 
   if (!hasRoute || !origin || !destination) {
     return (
@@ -331,6 +346,15 @@ export function RideMap({
           title={`Drop-off: ${destination.label}`}
         />
 
+        {/* Driver marker */}
+        {hasDriverPosition && driverPoint && driverIcon && (
+          <Marker
+            position={driverPoint}
+            icon={driverIcon}
+            title="Driver location"
+          />
+        )}
+
         {showControls && <ZoomControl position="bottomright" />}
 
         <MapViewController bounds={bounds} fallbackCenter={midpoint} />
@@ -381,6 +405,38 @@ function createMarkerIcon(leaflet: LeafletLib, color: string) {
     iconSize: [30, 30],
     iconAnchor: [15, 30],
     popupAnchor: [0, -28],
+  })
+}
+
+function createDriverIcon(leaflet: LeafletLib, color: string, isMC: boolean) {
+  const vehicleEmoji = isMC ? "🏍️" : "🚗"
+  return leaflet.divIcon({
+    className: "",
+    html: `<div style="
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      width:44px;
+      height:44px;
+      border-radius:9999px;
+      box-shadow:0 4px 12px rgba(15,23,42,0.3);
+      border:3px solid ${color};
+      background:white;
+      transform:translate(-50%, -50%);
+      font-size:20px;
+      animation: pulse 2s infinite;
+    ">
+      <style>
+        @keyframes pulse {
+          0%, 100% { transform: translate(-50%, -50%) scale(1); }
+          50% { transform: translate(-50%, -50%) scale(1.05); }
+        }
+      </style>
+      ${vehicleEmoji}
+    </div>`,
+    iconSize: [44, 44],
+    iconAnchor: [22, 44],
+    popupAnchor: [0, -40],
   })
 }
 

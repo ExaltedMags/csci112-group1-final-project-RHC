@@ -36,7 +36,7 @@ export interface ITrip extends Document {
   status: 'SEARCHED' | 'BOOKED' | 'COMPLETED';
   quotes: IQuote[];
   selectedQuote?: IQuote;
-  userId: string; // Demo user ID
+  userId: string; // User ID (MongoDB ObjectId as string)
   createdAt: Date;
 }
 
@@ -77,7 +77,7 @@ const TripSchema = new Schema<ITrip>({
   status: { type: String, enum: ['SEARCHED', 'BOOKED', 'COMPLETED'], default: 'SEARCHED' },
   quotes: [QuoteSchema],
   selectedQuote: QuoteSchema,
-  userId: { type: String, default: 'demo-user-123' },
+  userId: { type: String, required: true },
   createdAt: { type: Date, default: Date.now }
 });
 
