@@ -11,6 +11,11 @@ export async function GET(req: Request) {
 
   try {
     const places = await searchPlaces(query);
+
+    if (places.length === 0) {
+      console.warn(`[places-search] no results for query "${query.trim()}"`);
+    }
+
     return NextResponse.json(places);
   } catch (error) {
     console.error('[places-search] Failed to fetch suggestions:', error);
