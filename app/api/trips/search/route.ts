@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/mongoose';
 import { Trip, ITrip } from '@/models/Trip';
 import { getAllQuotes, estimateDistance } from '@/lib/providers/adapters';
-import { geocodePlace, getRoute, type LatLng } from '@/lib/openrouteservice';
+import { getRoute, type LatLng } from '@/lib/openrouteservice';
+import { geocodePlace, type GeocodedPlace } from '@/lib/mapbox';
 
 type PlacePayload = {
   label: string;
@@ -48,23 +49,29 @@ export async function POST(req: Request) {
 
     let originLatLng: LatLng | null = getLatLngFromPlace(body.originPlace);
     let destinationLatLng: LatLng | null = getLatLngFromPlace(body.destinationPlace);
+    let originGeocoded: GeocodedPlace | null = null;
+    let destinationGeocoded: GeocodedPlace | null = null;
 
     if (!originLatLng) {
-      const fallback = await geocodePlace(originLabel);
-      if (fallback) {
-        originLatLng = fallback;
+      originGeocoded = await geocodePlace(originLabel);
+      if (originGeocoded) {
+        originLatLng = originGeocoded;
       }
     }
 
     if (!destinationLatLng) {
-      const fallback = await geocodePlace(destinationLabel);
-      if (fallback) {
-        destinationLatLng = fallback;
+      destinationGeocoded = await geocodePlace(destinationLabel);
+      if (destinationGeocoded) {
+        destinationLatLng = destinationGeocoded;
       }
     }
 
+    const resolvedOriginLabel = originGeocoded?.label ?? originLabel;
+    const resolvedDestinationLabel = destinationGeocoded?.label ?? destinationLabel;
+
     let distanceKm = 0;
     let durationMinutes = MIN_DURATION_MINUTES;
+    let routeCoordinates: { lat: number; lng: number }[] | undefined;
     let usedFallback = false;
 
     if (originLatLng && destinationLatLng) {
@@ -72,9 +79,12 @@ export async function POST(req: Request) {
       if (route) {
         distanceKm = route.distanceKm;
         durationMinutes = route.durationMinutes;
+        if (route.geometry && route.geometry.length >= 2) {
+          routeCoordinates = route.geometry;
+        }
         console.info(`[trips-search] Mapbox coordinates + ORS routing`, {
-          origin: originLabel,
-          destination: destinationLabel,
+          origin: resolvedOriginLabel,
+          destination: resolvedDestinationLabel,
           distanceKm,
           durationMinutes,
         });
@@ -86,21 +96,21 @@ export async function POST(req: Request) {
     }
 
     if (usedFallback) {
-      distanceKm = estimateDistance(originLabel, destinationLabel);
+      distanceKm = estimateDistance(resolvedOriginLabel, resolvedDestinationLabel);
       durationMinutes = estimateDurationFromDistance(distanceKm);
       console.warn(`[trips-search] Falling back to estimate`, {
-        origin: originLabel,
-        destination: destinationLabel,
+        origin: resolvedOriginLabel,
+        destination: resolvedDestinationLabel,
         distanceKm,
         durationMinutes,
       });
     }
 
-    const { quotes } = await getAllQuotes(distanceKm, durationMinutes, originLabel);
+    const { quotes } = await getAllQuotes(distanceKm, durationMinutes, resolvedOriginLabel);
 
     const tripData: Partial<ITrip> = {
-      origin: originLabel,
-      destination: destinationLabel,
+      origin: resolvedOriginLabel,
+      destination: resolvedDestinationLabel,
       distanceKm,
       durationMinutes,
       quotes,
@@ -110,7 +120,7 @@ export async function POST(req: Request) {
 
     if (originLatLng) {
       tripData.originLocation = {
-        label: originLabel,
+        label: resolvedOriginLabel,
         lat: originLatLng.lat,
         lng: originLatLng.lng,
       };
@@ -118,9 +128,15 @@ export async function POST(req: Request) {
 
     if (destinationLatLng) {
       tripData.destinationLocation = {
-        label: destinationLabel,
+        label: resolvedDestinationLabel,
         lat: destinationLatLng.lat,
         lng: destinationLatLng.lng,
+      };
+    }
+
+    if (routeCoordinates?.length) {
+      tripData.routeGeometry = {
+        coordinates: routeCoordinates,
       };
     }
 

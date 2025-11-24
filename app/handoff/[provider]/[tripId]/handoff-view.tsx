@@ -8,9 +8,17 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
+import dynamic from "next/dynamic"
+const RideMap = dynamic(() => import("@/components/ride-map").then((mod) => mod.RideMap), {
+  ssr: false,
+  loading: () => (
+    <div className="flex min-h-[300px] w-full items-center justify-center rounded-[32px] border border-gray-200 bg-gray-50 text-sm text-gray-400">
+      Loading map...
+    </div>
+  ),
+})
 import { 
   ArrowLeft, 
-  MapPin, 
   Car, 
   Bike, 
   Globe, 
@@ -35,6 +43,7 @@ const PROVIDER_THEME: Record<string, {
   hover: string,
   text: string,
   bg: string,
+  mapColor: string,
   icon: LucideIcon 
 }> = {
   GrabPH: { 
@@ -42,6 +51,7 @@ const PROVIDER_THEME: Record<string, {
     hover: "hover:bg-green-700",
     text: "text-green-600",
     bg: "bg-green-50",
+    mapColor: "#16a34a",
     icon: Car 
   },
   JoyRideMC: { 
@@ -49,6 +59,7 @@ const PROVIDER_THEME: Record<string, {
     hover: "hover:bg-indigo-700",
     text: "text-indigo-600",
     bg: "bg-indigo-50",
+    mapColor: "#4f46e5",
     icon: Bike 
   },
   Angkas: { 
@@ -56,6 +67,7 @@ const PROVIDER_THEME: Record<string, {
     hover: "hover:bg-cyan-700",
     text: "text-cyan-600",
     bg: "bg-cyan-50",
+    mapColor: "#0891b2",
     icon: Bike 
   },
   // Fallback
@@ -64,6 +76,7 @@ const PROVIDER_THEME: Record<string, {
     hover: "hover:bg-slate-800",
     text: "text-slate-900",
     bg: "bg-slate-50",
+    mapColor: "#0f172a",
     icon: Car 
   }
 }
@@ -127,41 +140,15 @@ export default function HandoffView({ trip, providerId }: HandoffViewProps) {
       {/* Spacer for fixed header */}
       <div className="h-16"></div>
 
-      {/* 2. MAP SECTION (STATIC MOCK) */}
-      <div className="relative w-full h-64 bg-gray-200 overflow-hidden group">
-        {/* Map placeholder pattern */}
-        <div className="absolute inset-0 opacity-30 bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:16px_16px]"></div>
-        
-        {/* Fake roads */}
-        <div className="absolute top-0 left-1/4 w-4 h-full bg-white rotate-12 transform translate-x-8"></div>
-        <div className="absolute top-1/3 left-0 w-full h-4 bg-white -rotate-6"></div>
-        <div className="absolute bottom-1/4 right-0 w-full h-6 bg-white rotate-3"></div>
-
-        {/* Route Line */}
-        <svg className="absolute inset-0 w-full h-full pointer-events-none">
-          <path 
-            d="M 80 80 Q 150 150 300 200" 
-            fill="none" 
-            stroke={theme.accent.replace('bg-', 'var(--tw-color-)')} 
-            className={cn("stroke-[4px]", theme.text)}
-            strokeLinecap="round"
-            strokeDasharray="8 4"
-          />
-        </svg>
-
-        {/* Pins */}
-        <div className="absolute top-[60px] left-[65px] flex flex-col items-center animate-bounce duration-1000">
-          <div className="bg-blue-500 text-white p-1.5 rounded-full shadow-lg z-10">
-            <div className="w-2 h-2 bg-white rounded-full"></div>
-          </div>
-          <div className="w-1 h-8 bg-black/20"></div>
-        </div>
-
-        <div className="absolute top-[180px] left-[285px] flex flex-col items-center">
-          <div className={cn("text-white p-2 rounded-full shadow-lg z-10", theme.accent)}>
-             <MapPin className="w-5 h-5 fill-current" />
-          </div>
-        </div>
+      {/* 2. MAP SECTION */}
+      <div className="px-4">
+        <RideMap
+          origin={trip.originLocation}
+          destination={trip.destinationLocation}
+          path={trip.routeGeometry?.coordinates ?? null}
+          accentColor={theme.mapColor}
+          className="h-[300px] w-full rounded-[32px] border border-white shadow-2xl"
+        />
       </div>
 
       {/* 3. ROUTE SUMMARY CARD */}

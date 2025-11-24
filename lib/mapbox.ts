@@ -12,10 +12,13 @@ export interface PlaceSuggestion {
   lng: number;
 }
 
-const mapboxToken = process.env.MAPBOX_TOKEN;
+const mapboxToken = process.env.MAPBOX_TOKEN ?? process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+const isDev = process.env.NODE_ENV !== 'production';
 
 if (!mapboxToken) {
-  console.warn('[mapbox] MAPBOX_TOKEN is not configured. Place search will be disabled.');
+  if (isDev) {
+    console.warn('[mapbox] MAPBOX_TOKEN / NEXT_PUBLIC_MAPBOX_TOKEN is not configured. Place search will be disabled.');
+  }
 }
 
 const geocodingClient = mapboxToken
@@ -257,6 +260,69 @@ export async function searchPlaces(query: string): Promise<PlaceSuggestion[]> {
   }
 
   return searchWithForwardGeocode(trimmedQuery);
+}
+
+export type GeocodedPlace = {
+  lat: number;
+  lng: number;
+  label: string;
+};
+
+const FORWARD_GEOCODE_LIMIT = 1;
+
+export async function geocodePlace(query: string): Promise<GeocodedPlace | null> {
+  const trimmedQuery = query.trim();
+  if (!trimmedQuery) {
+    return null;
+  }
+
+  if (!geocodingClient) {
+    if (isDev) {
+      console.warn('[mapbox] Forward geocoding requested but MAPBOX token is missing.');
+    }
+    return null;
+  }
+
+  try {
+    const response = await geocodingClient
+      .forwardGeocode({
+        mode: 'mapbox.places',
+        query: trimmedQuery,
+        countries: DEFAULT_COUNTRIES,
+        limit: FORWARD_GEOCODE_LIMIT,
+        language: [...DEFAULT_LANGUAGES],
+        types: [...DEFAULT_TYPES],
+        autocomplete: true,
+      })
+      .send();
+
+    const feature: GeocodeFeature | undefined = response.body?.features?.[0];
+
+    if (!feature) {
+      if (isDev) {
+        console.warn(`[mapbox] No forward geocode match for "${trimmedQuery}"`);
+      }
+      return null;
+    }
+
+    const [lng, lat] = feature.center ?? [];
+
+    if (typeof lat !== 'number' || typeof lng !== 'number') {
+      if (isDev) {
+        console.warn(`[mapbox] Geocode response lacked coordinates for "${trimmedQuery}"`);
+      }
+      return null;
+    }
+
+    const label = feature.text ?? feature.place_name ?? trimmedQuery;
+
+    return { lat, lng, label };
+  } catch (error) {
+    if (isDev) {
+      console.warn('[mapbox] Forward geocode failed:', error);
+    }
+    return null;
+  }
 }
 
 

@@ -26,6 +26,12 @@ export interface ITrip extends Document {
     lat: number;
     lng: number;
   };
+  routeGeometry?: {
+    coordinates: {
+      lat: number;
+      lng: number;
+    }[];
+  };
   status: 'SEARCHED' | 'BOOKED' | 'COMPLETED';
   quotes: IQuote[];
   selectedQuote?: IQuote;
@@ -43,6 +49,11 @@ const QuoteSchema = new Schema<IQuote>({
   category: { type: String, enum: ['4-wheel', '2-wheel'], required: true }
 }, { _id: false });
 
+const CoordinateSchema = new Schema({
+  lat: { type: Number, required: true },
+  lng: { type: Number, required: true }
+}, { _id: false });
+
 const TripSchema = new Schema<ITrip>({
   origin: { type: String, required: true },
   destination: { type: String, required: true },
@@ -57,6 +68,9 @@ const TripSchema = new Schema<ITrip>({
     label: { type: String },
     lat: { type: Number },
     lng: { type: Number }
+  },
+  routeGeometry: {
+    coordinates: { type: [CoordinateSchema], default: undefined }
   },
   status: { type: String, enum: ['SEARCHED', 'BOOKED', 'COMPLETED'], default: 'SEARCHED' },
   quotes: [QuoteSchema],
