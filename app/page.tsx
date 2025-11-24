@@ -156,19 +156,19 @@ export default function SearchPage() {
   }
 
   return (
-    <div className="flex flex-col justify-center items-center min-h-[calc(100vh-4rem)] p-4 bg-slate-50">
-      <Card className="w-full max-w-md border-0 sm:border shadow-none sm:shadow-lg bg-transparent sm:bg-card">
+    <div className="flex flex-col justify-center items-center min-h-[calc(100vh-4rem)] p-4 bg-gradient-to-b from-slate-50 via-slate-50 to-slate-100">
+      <Card className="w-full max-w-md border-0 sm:border shadow-none sm:shadow-xl sm:border-slate-100 bg-transparent sm:bg-white/95 sm:backdrop-blur">
         <CardHeader className="px-0 sm:px-6 pb-2">
-          <CardTitle className="text-2xl font-bold text-slate-900">Where to?</CardTitle>
+          <CardTitle className="text-2xl font-bold text-slate-900 tracking-tight">Where to?</CardTitle>
         </CardHeader>
         <CardContent className="px-0 sm:px-6">
           <form onSubmit={onSubmit} className="space-y-6">
             {/* Inputs Container */}
-            <div className="relative bg-white rounded-xl shadow-sm border p-4 space-y-4">
-              {/* Visual connector line */}
-              <div className="absolute left-8 top-14 bottom-14 w-0.5 bg-slate-200 -z-0" />
+            <div className="relative rounded-2xl border border-slate-100 bg-white/95 p-4 space-y-4 shadow-sm shadow-slate-900/5">
+              {/* Visual connector line (positioned to connect only the input pills, avoiding labels) */}
+              <div className="pointer-events-none absolute left-8 top-[3.5rem] bottom-[3.5rem] w-0.5 bg-slate-200" />
 
-              <div className="relative z-10">
+              <div className={`relative ${activeField === 'origin' ? 'z-30' : 'z-10'}`}>
                 <LocationSearchInput
                   label="Pickup from?"
                   value={originPlace}
@@ -197,7 +197,7 @@ export default function SearchPage() {
                 </Button>
               </div>
 
-              <div className="relative z-10">
+              <div className={`relative ${activeField === 'destination' ? 'z-30' : 'z-10'}`}>
                 <LocationSearchInput
                   label="Drop off to?"
                   value={destinationPlace}
@@ -210,7 +210,7 @@ export default function SearchPage() {
             </div>
 
             {/* Suggestions */}
-            <div className="space-y-4">
+            <div className="relative z-0 space-y-4">
               {/* Current Location */}
               <button
                 type="button"
