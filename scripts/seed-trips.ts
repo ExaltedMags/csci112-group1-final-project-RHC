@@ -140,10 +140,10 @@ const MIN_ROUTE_TRIPS = 3;
 const EXTRA_TRIPS_MIN = 15;
 const EXTRA_TRIPS_MAX = 20;
 
-const TIME_BUCKET_WEIGHTS: { bucket: TimeBucket; weight: number }[] = [
-  { bucket: 'RUSH', weight: 4.5 },
-  { bucket: 'OFF', weight: 4.5 },
-  { bucket: 'LATE', weight: 1 },
+const TIME_BUCKET_WEIGHTS: { value: TimeBucket; weight: number }[] = [
+  { value: 'RUSH', weight: 4.5 },
+  { value: 'OFF', weight: 4.5 },
+  { value: 'LATE', weight: 1 },
 ];
 
 const TIME_BUCKET_HOURS: Record<TimeBucket, number[]> = {

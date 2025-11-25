@@ -1,11 +1,11 @@
 "use client"
 
 import { useRouter } from "next/navigation"
-import { useState, useEffect, type FormEvent, type MouseEvent } from "react"
+import { useState, useEffect, useRef, useCallback, type FormEvent, type MouseEvent } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Loader2, Navigation, ArrowUpDown, History } from "lucide-react"
+import { Loader2, Navigation, ArrowUpDown, History, Sparkles, MapPin } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import LocationSearchInput from "@/components/location-search-input"
 import type { PlaceSuggestion } from "@/lib/mapbox"
@@ -34,6 +34,50 @@ export default function SearchPage() {
   const [destinationPlace, setDestinationPlace] = useState<PlaceSuggestion | null>(null)
   const [isPrefilling, setIsPrefilling] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const inputsContainerRef = useRef<HTMLDivElement | null>(null)
+  const originIconRef = useRef<HTMLDivElement | null>(null)
+  const destinationIconRef = useRef<HTMLDivElement | null>(null)
+  const [connectorStyle, setConnectorStyle] = useState<{ top: number; height: number; left: number } | null>(null)
+
+  const updateConnectorPosition = useCallback(() => {
+    if (
+      !inputsContainerRef.current ||
+      !originIconRef.current ||
+      !destinationIconRef.current
+    ) {
+      return
+    }
+
+    const containerRect = inputsContainerRef.current.getBoundingClientRect()
+    const originRect = originIconRef.current.getBoundingClientRect()
+    const destinationRect = destinationIconRef.current.getBoundingClientRect()
+
+    const originCenterY = originRect.top + originRect.height / 2 - containerRect.top
+    const destinationCenterY =
+      destinationRect.top + destinationRect.height / 2 - containerRect.top
+    const lineWidth = 2 // Tailwind w-0.5 = 0.125rem ≈ 2px
+    const left =
+      originRect.left + originRect.width / 2 - containerRect.left - lineWidth / 2
+
+    setConnectorStyle({
+      top: originCenterY,
+      height: Math.max(destinationCenterY - originCenterY, 0),
+      left,
+    })
+  }, [])
+
+  useEffect(() => {
+    const handleResize = () => {
+      requestAnimationFrame(updateConnectorPosition)
+    }
+
+    handleResize()
+    window.addEventListener("resize", handleResize)
+
+    return () => {
+      window.removeEventListener("resize", handleResize)
+    }
+  }, [updateConnectorPosition, originPlace?.label, destinationPlace?.label, activeField])
 
   // Fetch history on mount
   useEffect(() => {
@@ -172,91 +216,145 @@ export default function SearchPage() {
 
   return (
     <AuthGuard>
-      <div className="flex flex-col justify-center items-center min-h-[calc(100vh-4rem)] p-4 bg-gradient-to-b from-slate-50 via-slate-50 to-slate-100">
-      <Card className="w-full max-w-md border-0 sm:border shadow-none sm:shadow-xl sm:border-slate-100 bg-transparent sm:bg-white/95 sm:backdrop-blur">
-        <CardHeader className="px-0 sm:px-6 pb-2">
-          <CardTitle className="text-2xl font-bold text-slate-900 tracking-tight">Where to?</CardTitle>
-        </CardHeader>
-        <CardContent className="px-0 sm:px-6">
-          <form onSubmit={onSubmit} className="space-y-6">
-            {/* Inputs Container */}
-            <div className="relative rounded-2xl border border-slate-100 bg-white/95 p-4 space-y-4 shadow-sm shadow-slate-900/5">
-              {/* Visual connector line (positioned to connect only the input pills, avoiding labels) */}
-              <div className="pointer-events-none absolute left-8 top-[3.5rem] bottom-[3.5rem] w-0.5 bg-slate-200" />
+      <div className="flex flex-col justify-center items-center min-h-[calc(100vh-8rem)] p-4 bg-gradient-hero">
+        {/* Hero Section */}
+        <div className="text-center mb-8 animate-fade-in-up">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-coral/10 text-coral text-sm font-medium mb-4">
+            <Sparkles className="w-4 h-4" />
+            <span>Compare fares. Save time (and money!)</span>
+          </div>
+          <h1 className="text-4xl sm:text-5xl font-extrabold text-warm-gray tracking-tight mb-3">
+            Where to, <span className="text-coral">kabayan</span>?
+          </h1>
+          <p className="text-warm-gray/60 text-lg mx-auto whitespace-nowrap">
+            Compare ride fares across ride-hailing services in seconds
+          </p>
+        </div>
 
-              <div className={`relative ${activeField === 'origin' ? 'z-30' : 'z-10'}`}>
-                <LocationSearchInput
-                  label="Pickup from?"
-                  value={originPlace}
-                  onChange={(place) => {
-                    setOriginPlace(place)
-                    if (place) {
-                      setActiveField('destination')
-                    }
-                  }}
-                  placeholder="Search pickup location"
-                  onFocus={() => setActiveField('origin')}
-                  icon={<div className="flex-shrink-0 w-4 h-4 rounded-full bg-blue-500 ring-4 ring-blue-50" />}
-                />
-              </div>
-
-              {/* Divider with Swap Button */}
-              <div className="relative z-20 flex justify-end pr-4 -my-2 pointer-events-none">
-                <Button
-                  type="button"
-                  size="icon"
-                  variant="outline"
-                  className="h-8 w-8 rounded-full bg-white border shadow-sm pointer-events-auto hover:bg-slate-50"
-                  onClick={handleSwap}
-                >
-                  <ArrowUpDown className="h-3.5 w-3.5 text-slate-500" />
-                </Button>
-              </div>
-
-              <div className={`relative ${activeField === 'destination' ? 'z-30' : 'z-10'}`}>
-                <LocationSearchInput
-                  label="Drop off to?"
-                  value={destinationPlace}
-                  onChange={(place) => setDestinationPlace(place)}
-                  placeholder="Search destination"
-                  onFocus={() => setActiveField('destination')}
-                  icon={<div className="flex-shrink-0 w-4 h-4 bg-orange-500 ring-4 ring-orange-50" />}
-                />
-              </div>
-            </div>
-
-            {/* Suggestions */}
-            <div className="relative z-0 space-y-4">
-              {/* Current Location */}
-              <button
-                type="button"
-                onClick={handleUseCurrentLocation}
-                className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-slate-100 transition-colors text-left group"
-                disabled={isPrefilling}
+        <Card className="w-full max-w-md border-0 shadow-xl shadow-warm-gray/10 bg-white animate-fade-in-up delay-100">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xl font-bold text-warm-gray flex items-center gap-2">
+              <MapPin className="w-5 h-5 text-coral" />
+              Plan Your Ride
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={onSubmit} className="space-y-6">
+              {/* Inputs Container */}
+              <div
+                ref={inputsContainerRef}
+                className="relative rounded-2xl border border-border/60 bg-cream/50 p-4 space-y-3 animate-fade-in-up delay-150"
               >
-                <div className="p-2 rounded-full bg-blue-100 text-blue-600 group-hover:bg-blue-200 transition-colors">
-                  <Navigation className="w-4 h-4 fill-current" />
-                </div>
-                <div>
-                  <p className="font-semibold text-sm text-slate-900">Use my current location</p>
-                  <p className="text-xs text-slate-500">Enable location services</p>
-                </div>
-              </button>
+                {/* Visual connector line - aligned with dynamic icon centers */}
+                <div
+                  className={`pointer-events-none absolute w-0.5 bg-gradient-to-b from-teal via-border to-coral transition-all duration-200 ${connectorStyle ? 'opacity-100' : 'opacity-0'}`}
+                  style={
+                    connectorStyle
+                      ? {
+                          left: connectorStyle.left,
+                          top: connectorStyle.top,
+                          height: connectorStyle.height,
+                        }
+                      : undefined
+                  }
+                />
 
-              {/* Recent Places */}
-              {recentPlaces.length > 0 && (
+                <div className={`relative ${activeField === 'origin' ? 'z-30' : 'z-20'}`}>
+                  <LocationSearchInput
+                    label="Pickup from?"
+                    value={originPlace}
+                    onChange={(place) => {
+                      setOriginPlace(place)
+                      if (place) {
+                        setActiveField('destination')
+                      }
+                    }}
+                    placeholder="Search pickup location"
+                    onFocus={() => setActiveField('origin')}
+                    icon={<div className="shrink-0 w-4 h-4 rounded-full bg-teal ring-4 ring-teal/20" />}
+                    iconRef={originIconRef}
+                  />
+                </div>
+
+                {/* Divider with Swap Button */}
+                <div className="relative z-30 flex justify-end pr-4 -my-1 pointer-events-none">
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="outline"
+                    className="h-9 w-9 rounded-full bg-white border-2 shadow-md pointer-events-auto hover:bg-coral/5 hover:border-coral/30 hover:rotate-180 transition-all duration-300"
+                    onClick={handleSwap}
+                  >
+                    <ArrowUpDown className="h-4 w-4 text-warm-gray/70" />
+                  </Button>
+                </div>
+
+                <div className={`relative ${activeField === 'destination' ? 'z-30' : 'z-20'} animate-fade-in-up delay-200`}>
+                  <LocationSearchInput
+                    label="Drop off to?"
+                    value={destinationPlace}
+                    onChange={(place) => setDestinationPlace(place)}
+                    placeholder="Search destination"
+                    onFocus={() => setActiveField('destination')}
+                    icon={<div className="shrink-0 w-4 h-4 bg-coral ring-4 ring-coral/20 rounded-full" />}
+                    iconRef={destinationIconRef}
+                  />
+                </div>
+              </div>
+
+              {/* Suggestions */}
+              <div className="relative z-0 space-y-4 animate-fade-in-up delay-250">
+                {/* Current Location */}
+                <button
+                  type="button"
+                  onClick={handleUseCurrentLocation}
+                  className="w-full flex items-center gap-3 p-3.5 rounded-xl hover:bg-teal/5 transition-all text-left group border border-transparent hover:border-teal/20"
+                  disabled={isPrefilling}
+                >
+                  <div className="p-2.5 rounded-full bg-teal/10 text-teal group-hover:bg-teal/20 transition-colors">
+                    <Navigation className="w-4 h-4 fill-current" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-sm text-warm-gray">Use my current location</p>
+                    <p className="text-xs text-warm-gray/50">Enable location services</p>
+                  </div>
+                </button>
+
+                {/* Recent Places */}
+                {recentPlaces.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-xs font-semibold text-warm-gray/50 uppercase tracking-wider">
+                      <History className="w-3 h-3" />
+                      Recent
+                      {isPrefilling && <Loader2 className="h-3.5 w-3.5 animate-spin text-coral" />}
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {recentPlaces.map((place, i) => (
+                        <Badge
+                          key={i}
+                          variant="secondary"
+                          className="cursor-pointer hover:bg-coral/10 hover:text-coral px-3 py-1.5 text-sm font-normal transition-colors"
+                          onClick={() => { void handleQuickApply(place) }}
+                        >
+                          {place}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Popular Places */}
                 <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                    <History className="w-3 h-3" />
-                    Recent
-                    {isPrefilling && <Loader2 className="h-3.5 w-3.5 animate-spin text-slate-400" />}
+                  <div className="text-xs font-semibold text-warm-gray/50 uppercase tracking-wider flex items-center gap-2">
+                    <Sparkles className="w-3 h-3" />
+                    Popular Destinations
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    {recentPlaces.map((place, i) => (
+                    {POPULAR_LOCATIONS.map((place) => (
                       <Badge
-                        key={i}
-                        variant="secondary"
-                        className="cursor-pointer hover:bg-slate-200 px-3 py-1.5 text-sm font-normal"
+                        key={place}
+                        variant="outline"
+                        className="cursor-pointer hover:bg-coral/5 hover:border-coral/30 hover:text-coral px-3 py-1.5 text-sm font-normal transition-colors"
                         onClick={() => { void handleQuickApply(place) }}
                       >
                         {place}
@@ -264,50 +362,51 @@ export default function SearchPage() {
                     ))}
                   </div>
                 </div>
-              )}
-
-              {/* Popular Places */}
-              <div className="space-y-2">
-                <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                  Popular
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {POPULAR_LOCATIONS.map((place) => (
-                    <Badge
-                      key={place}
-                      variant="outline"
-                      className="cursor-pointer hover:bg-slate-100 px-3 py-1.5 text-sm font-normal"
-                      onClick={() => { void handleQuickApply(place) }}
-                    >
-                      {place}
-                    </Badge>
-                  ))}
-                </div>
               </div>
-            </div>
 
-            {errorMessage && (
-              <p className="text-sm text-red-600">{errorMessage}</p>
-            )}
-
-            <Button 
-              type="submit" 
-              className="w-full h-12 text-base font-semibold shadow-lg shadow-primary/20" 
-              disabled={isLoading || !originPlace || !destinationPlace}
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Finding rides...
-                </>
-              ) : (
-                "Check Rates"
+              {errorMessage && (
+                <div className="p-3 rounded-xl bg-red-50 border border-red-200">
+                  <p className="text-sm text-red-700">{errorMessage}</p>
+                </div>
               )}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
-    </div>
+
+              <Button 
+                type="submit" 
+                className="w-full h-14 text-base font-bold shadow-xl shadow-coral/25 animate-fade-in-up delay-300" 
+                disabled={isLoading || !originPlace || !destinationPlace}
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    Finding best fares...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="mr-2 h-5 w-5" />
+                    Compare Fares
+                  </>
+                )}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+
+        {/* Trust indicators */}
+        <div className="mt-8 flex items-center gap-6 text-sm text-warm-gray/50 animate-fade-in-up delay-400">
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full bg-emerald-500" />
+            <span>Grab</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full bg-cyan-500" />
+            <span>Angkas</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full bg-indigo-500" />
+            <span>JoyRide</span>
+          </div>
+        </div>
+      </div>
     </AuthGuard>
   )
 }

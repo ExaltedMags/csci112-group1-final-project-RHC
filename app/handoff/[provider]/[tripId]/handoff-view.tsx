@@ -30,6 +30,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { getProviderTheme } from "@/lib/provider-theme"
+import { ProviderLogo } from "@/components/provider-logo"
 
 interface HandoffViewProps {
   trip: ITrip
@@ -61,7 +62,6 @@ export default function HandoffView({ trip, providerId, orsEnabled }: HandoffVie
                 trip.quotes[0]
 
   const theme = getProviderTheme(providerId)
-  const ProviderIcon = theme.icon
 
   // Navigation to progress screen after booking
   // Navigates immediately after API calls complete (no overlay delay)
@@ -267,7 +267,12 @@ export default function HandoffView({ trip, providerId, orsEnabled }: HandoffVie
         <div className={cn("rounded-xl border-2 p-3 flex items-center justify-between bg-white shadow-sm transition-colors", `border-${providerId === 'GrabPH' ? 'green' : providerId === 'Angkas' ? 'cyan' : 'indigo'}-100`)}>
           <div className="flex items-center gap-4">
             <div className={cn("w-12 h-12 rounded-full flex items-center justify-center", theme.bg)}>
-              <ProviderIcon className={cn("w-6 h-6", theme.text)} />
+              <ProviderLogo
+                theme={theme}
+                size={32}
+                className="w-6 h-6"
+                iconClassName={cn("w-6 h-6", theme.text)}
+              />
             </div>
             <div>
               <h3 className="font-bold text-gray-900 flex items-center gap-2">

@@ -7,25 +7,31 @@ export interface ProviderThemeConfig {
   text: string
   bg: string
   mapColor: string
-  icon: LucideIcon
+  icon?: LucideIcon
+  logoSrc?: string
+  logoAlt?: string
 }
 
 export const PROVIDER_THEME: Record<string, ProviderThemeConfig> = {
   GrabPH: {
-    accent: "bg-green-600",
-    hover: "hover:bg-green-700",
-    text: "text-green-600",
-    bg: "bg-green-50",
-    mapColor: "#16a34a",
+    accent: "bg-emerald-500",
+    hover: "hover:bg-emerald-600",
+    text: "text-emerald-600",
+    bg: "bg-emerald-50",
+    mapColor: "#00B14F",
     icon: Car,
+    logoSrc: "/provider-logos/grab.svg",
+    logoAlt: "GrabPH logo",
   },
   JoyRideMC: {
-    accent: "bg-indigo-600",
-    hover: "hover:bg-indigo-700",
+    accent: "bg-indigo-500",
+    hover: "hover:bg-indigo-600",
     text: "text-indigo-600",
     bg: "bg-indigo-50",
-    mapColor: "#4f46e5",
+    mapColor: "#6366F1",
     icon: Bike,
+    logoSrc: "/provider-logos/joyridemc.png",
+    logoAlt: "JoyRideMC logo",
   },
   Angkas: {
     accent: "bg-cyan-600",
@@ -34,13 +40,15 @@ export const PROVIDER_THEME: Record<string, ProviderThemeConfig> = {
     bg: "bg-cyan-50",
     mapColor: "#0891b2",
     icon: Bike,
+    logoSrc: "/provider-logos/angkas.png",
+    logoAlt: "Angkas logo",
   },
   default: {
-    accent: "bg-slate-900",
-    hover: "hover:bg-slate-800",
-    text: "text-slate-900",
-    bg: "bg-slate-50",
-    mapColor: "#0f172a",
+    accent: "bg-warm-gray",
+    hover: "hover:bg-warm-gray/90",
+    text: "text-warm-gray",
+    bg: "bg-cream",
+    mapColor: "#44403C",
     icon: Car,
   },
 }
@@ -48,5 +56,3 @@ export const PROVIDER_THEME: Record<string, ProviderThemeConfig> = {
 export function getProviderTheme(providerId: string) {
   return PROVIDER_THEME[providerId] || PROVIDER_THEME.default
 }
-
-

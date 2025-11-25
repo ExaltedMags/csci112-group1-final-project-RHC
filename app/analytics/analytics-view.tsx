@@ -18,6 +18,8 @@ import {
   formatCurrency,
 } from "@/lib/types/analytics"
 import { getProviderTheme } from "@/lib/provider-theme"
+import { PROVIDER_LABELS } from "@/lib/providers/adapters"
+import { ProviderLogo } from "@/components/provider-logo"
 import {
   TrendingUp,
   TrendingDown,
@@ -36,6 +38,8 @@ import {
   ArrowRight,
   Trophy,
   ChevronDown,
+  BarChart3,
+  Sparkles,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -63,16 +67,16 @@ function CollapsibleSectionHeader({
     <CollapsibleTrigger
       type="button"
       onClick={onToggle}
-      className="inline-flex w-full items-center gap-2 text-left cursor-pointer"
+      className="inline-flex w-full items-center gap-2 text-left cursor-pointer group"
     >
       {icon}
       <div className="inline-flex items-center gap-1">
-        <h2 id={titleId} className="text-xl font-semibold">
+        <h2 id={titleId} className="text-xl font-bold text-warm-gray group-hover:text-coral transition-colors">
           {title}
         </h2>
         <ChevronDown
           className={cn(
-            "h-5 w-5 text-muted-foreground transition-transform duration-200 shrink-0",
+            "h-5 w-5 text-warm-gray/50 transition-transform duration-200 shrink-0 group-hover:text-coral",
             isOpen ? "rotate-0" : "-rotate-90"
           )}
           aria-hidden="true"
@@ -81,6 +85,8 @@ function CollapsibleSectionHeader({
     </CollapsibleTrigger>
   )
 }
+
+const formatProviderName = (providerId: string) => PROVIDER_LABELS[providerId] ?? providerId
 
 export default function AnalyticsView({ data }: AnalyticsViewProps) {
   const { surgeFrequencyByProvider, surgePatternsByTimeOfDay, surgePatternsByLocation, topRoutes } = data
@@ -111,35 +117,41 @@ export default function AnalyticsView({ data }: AnalyticsViewProps) {
   const insights = generateInsights(data, totalQuotes, marketLeader, bestValue)
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 max-w-6xl mx-auto">
       {/* Header Section */}
-      <div className="pb-2">
-        <h1 className="text-4xl font-bold tracking-tight">Platform Analytics</h1>
+      <div className="pb-2 animate-fade-in-up">
+        <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-warm-gray">
+          Platform Analytics
+        </h1>
+        <p className="text-warm-gray/60 mt-2">
+          Discover fare patterns and find the best times to ride
+        </p>
       </div>
 
       {/* Provider Performance Section */}
       <Collapsible open={providerPerformanceOpen} onOpenChange={setProviderPerformanceOpen}>
-        <section aria-labelledby="provider-performance-title">
+        <section aria-labelledby="provider-performance-title" className="animate-fade-in-up delay-100">
           <div className="mb-4">
             <CollapsibleSectionHeader
-              icon={<Award className="h-5 w-5 text-muted-foreground" aria-hidden="true" />}
+              icon={<div className="p-2 rounded-lg bg-coral/10"><Award className="h-5 w-5 text-coral" /></div>}
               title="Provider Performance Comparison"
               titleId="provider-performance-title"
               isOpen={providerPerformanceOpen}
               onToggle={() => setProviderPerformanceOpen(!providerPerformanceOpen)}
             />
           </div>
-          <CollapsibleContent >
+          <CollapsibleContent>
             <div className="grid gap-4 md:grid-cols-3">
-              {surgeFrequencyByProvider.map((provider) => (
-                <ProviderCard
-                  key={provider.provider}
-                  provider={provider}
-                  totalQuotes={totalQuotes}
-                  isMarketLeader={provider.provider === marketLeader?.provider}
-                  isBestValue={provider.provider === bestValue?.provider}
-                />
-              ))}
+                      {surgeFrequencyByProvider.map((provider, index) => (
+                        <div key={provider.provider} className={cn("animate-fade-in-up", `delay-${(index + 1) * 100}`)}>
+                          <ProviderCard
+                            provider={provider}
+                            totalQuotes={totalQuotes}
+                            isMarketLeader={provider.provider === marketLeader?.provider}
+                            isBestValue={provider.provider === bestValue?.provider}
+                          />
+                        </div>
+                      ))}
             </div>
           </CollapsibleContent>
         </section>
@@ -147,21 +159,21 @@ export default function AnalyticsView({ data }: AnalyticsViewProps) {
 
       {/* Provider Comparison Table */}
       <Collapsible open={detailedMetricsOpen} onOpenChange={setDetailedMetricsOpen}>
-        <section aria-labelledby="comparison-table-title">
+        <section aria-labelledby="comparison-table-title" className="animate-fade-in-up delay-200">
           <Card>
             <CardHeader className="pb-3">
               <CollapsibleTrigger
                 type="button"
                 onClick={() => setDetailedMetricsOpen(!detailedMetricsOpen)}
-                className="flex flex-col gap-1 text-left cursor-pointer"
+                className="flex flex-col gap-1 text-left cursor-pointer group"
               >
                 <div className="flex items-center gap-2">
-                  <CardTitle className="text-lg" id="comparison-table-title">
+                  <CardTitle className="text-lg group-hover:text-coral transition-colors" id="comparison-table-title">
                     Detailed Provider Metrics
                   </CardTitle>
                   <ChevronDown
                     className={cn(
-                      "h-5 w-5 text-muted-foreground transition-transform duration-200 shrink-0",
+                      "h-5 w-5 text-warm-gray/50 transition-transform duration-200 shrink-0",
                       detailedMetricsOpen ? "rotate-0" : "-rotate-90"
                     )}
                     aria-hidden="true"
@@ -169,82 +181,93 @@ export default function AnalyticsView({ data }: AnalyticsViewProps) {
                 </div>
               </CollapsibleTrigger>
             </CardHeader>
-            <CollapsibleContent >
+            <CollapsibleContent>
               <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Provider</TableHead>
-                      <TableHead className="text-right">Total Quotes</TableHead>
-                      <TableHead className="text-right">Market Share</TableHead>
-                      <TableHead className="text-right">Surge Frequency</TableHead>
-                      <TableHead className="text-right">Avg Surge</TableHead>
-                      <TableHead className="text-right">Max Surge</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {surgeFrequencyByProvider.map((provider) => {
-                      const theme = getProviderTheme(provider.provider)
-                      const marketShare = totalQuotes > 0 ? (provider.totalQuotes / totalQuotes) * 100 : 0
-                      const surgeLevel = getSurgeLevel(provider.averageSurgeMultiplier)
+                <div className="rounded-xl border border-border overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-cream hover:bg-cream">
+                        <TableHead className="font-semibold text-warm-gray">Provider</TableHead>
+                        <TableHead className="text-right font-semibold text-warm-gray">Total Quotes</TableHead>
+                        <TableHead className="text-right font-semibold text-warm-gray">Market Share</TableHead>
+                        <TableHead className="text-right font-semibold text-warm-gray">Surge Freq.</TableHead>
+                        <TableHead className="text-right font-semibold text-warm-gray">Avg Surge</TableHead>
+                        <TableHead className="text-right font-semibold text-warm-gray">Max Surge</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {surgeFrequencyByProvider.map((provider, index) => {
+                        const theme = getProviderTheme(provider.provider)
+                        const providerName = formatProviderName(provider.provider)
+                        const marketShare = totalQuotes > 0 ? (provider.totalQuotes / totalQuotes) * 100 : 0
+                        const surgeLevel = getSurgeLevel(provider.averageSurgeMultiplier)
 
-                      return (
-                        <TableRow key={provider.provider}>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <div className={cn("p-1.5 rounded", theme.bg)}>
-                                <theme.icon className={cn("h-4 w-4", theme.text)} />
+                        return (
+                          <TableRow 
+                            key={provider.provider}
+                            className={cn(index % 2 === 0 ? "bg-white" : "bg-cream/30")}
+                          >
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <div className={cn("p-1.5 rounded-lg", theme.bg)}>
+                                  <ProviderLogo
+                                    theme={theme}
+                                    size={20}
+                                    className="h-4 w-4"
+                                    iconClassName={cn("h-4 w-4", theme.text)}
+                                  />
+                                </div>
+                                <span className="font-semibold text-warm-gray">{providerName}</span>
                               </div>
-                              <span className="font-medium">{provider.provider}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-right font-mono">
-                            {provider.totalQuotes.toLocaleString()}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex items-center justify-end gap-2">
-                              <div className="w-16 h-2 bg-muted rounded-full overflow-hidden">
-                                <div
-                                  className={cn("h-full rounded-full", theme.accent)}
-                                  style={{ width: `${marketShare}%` }}
-                                />
+                            </TableCell>
+                            <TableCell className="text-right font-mono text-warm-gray">
+                              {provider.totalQuotes.toLocaleString()}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex items-center justify-end gap-2">
+                                <div className="w-16 h-2.5 bg-cream rounded-full overflow-hidden">
+                                  <div
+                                    className={cn("h-full rounded-full transition-all", theme.accent)}
+                                    style={{ width: `${marketShare}%` }}
+                                  />
+                                </div>
+                                <span className="font-mono text-sm w-12 text-warm-gray">
+                                  {formatPercentage(marketShare, 0)}
+                                </span>
                               </div>
-                              <span className="font-mono text-sm w-12">
-                                {formatPercentage(marketShare, 0)}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <Badge
+                                variant="outline"
+                                className={cn(
+                                  "font-mono",
+                                  provider.surgePercentage >= 50 ? "text-red-600 border-red-200 bg-red-50" :
+                                  provider.surgePercentage >= 25 ? "text-amber-600 border-amber-200 bg-amber-50" :
+                                  "text-emerald-600 border-emerald-200 bg-emerald-50"
+                                )}
+                              >
+                                {formatPercentage(provider.surgePercentage)}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <span className={cn("font-mono text-sm px-2 py-1 rounded-lg", getSurgeLevelColor(surgeLevel))}>
+                                {formatSurgeMultiplier(provider.averageSurgeMultiplier)}
                               </span>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Badge
-                              variant="outline"
-                              className={cn(
-                                "font-mono",
-                                provider.surgePercentage >= 50 ? "text-red-600 border-red-200" :
-                                provider.surgePercentage >= 25 ? "text-amber-600 border-amber-200" :
-                                "text-emerald-600 border-emerald-200"
-                              )}
-                            >
-                              {formatPercentage(provider.surgePercentage)}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <span className={cn("font-mono text-sm px-2 py-1 rounded", getSurgeLevelColor(surgeLevel))}>
-                              {formatSurgeMultiplier(provider.averageSurgeMultiplier)}
-                            </span>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <span className={cn(
-                              "font-mono text-sm px-2 py-1 rounded",
-                              getSurgeLevelColor(getSurgeLevel(provider.maxSurgeMultiplier))
-                            )}>
-                              {formatSurgeMultiplier(provider.maxSurgeMultiplier)}
-                            </span>
-                          </TableCell>
-                        </TableRow>
-                      )
-                    })}
-                  </TableBody>
-                </Table>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <span className={cn(
+                                "font-mono text-sm px-2 py-1 rounded-lg",
+                                getSurgeLevelColor(getSurgeLevel(provider.maxSurgeMultiplier))
+                              )}>
+                                {formatSurgeMultiplier(provider.maxSurgeMultiplier)}
+                              </span>
+                            </TableCell>
+                          </TableRow>
+                        )
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
               </CardContent>
             </CollapsibleContent>
           </Card>
@@ -252,14 +275,16 @@ export default function AnalyticsView({ data }: AnalyticsViewProps) {
       </Collapsible>
 
       {/* Top Routes Section */}
-      <TopRoutesSection routes={topRoutes} isOpen={topRoutesOpen} onToggle={() => setTopRoutesOpen(!topRoutesOpen)} />
+      <div className="animate-fade-in-up delay-300">
+        <TopRoutesSection routes={topRoutes} isOpen={topRoutesOpen} onToggle={() => setTopRoutesOpen(!topRoutesOpen)} />
+      </div>
 
       {/* Surge Patterns Section */}
       <Collapsible open={surgePatternsOpen} onOpenChange={setSurgePatternsOpen}>
-        <section aria-labelledby="surge-patterns-title">
+        <section aria-labelledby="surge-patterns-title" className="animate-fade-in-up delay-400">
           <div className="mb-4">
             <CollapsibleSectionHeader
-              icon={<Zap className="h-5 w-5 text-amber-500" aria-hidden="true" />}
+              icon={<div className="p-2 rounded-lg bg-coral/10"><Zap className="h-5 w-5 text-coral" /></div>}
               title="Surge Pricing Patterns"
               titleId="surge-patterns-title"
               isOpen={surgePatternsOpen}
@@ -267,13 +292,15 @@ export default function AnalyticsView({ data }: AnalyticsViewProps) {
             />
           </div>
 
-          <CollapsibleContent >
+          <CollapsibleContent>
             <div className="grid gap-6 lg:grid-cols-2">
               {/* By Time of Day */}
-              <Card>
+              <Card className="hover:shadow-lg transition-shadow">
                 <CardHeader className="pb-3">
                   <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                    <div className="p-2 rounded-lg bg-coral/10">
+                      <Clock className="h-4 w-4 text-coral" />
+                    </div>
                     <CardTitle className="text-base">By Time of Day</CardTitle>
                   </div>
                   <CardDescription>
@@ -288,10 +315,12 @@ export default function AnalyticsView({ data }: AnalyticsViewProps) {
               </Card>
 
               {/* By Location Type */}
-              <Card>
+              <Card className="hover:shadow-lg transition-shadow">
                 <CardHeader className="pb-3">
                   <div className="flex items-center gap-2">
-                    <MapPin className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                    <div className="p-2 rounded-lg bg-teal/10">
+                      <MapPin className="h-4 w-4 text-teal" />
+                    </div>
                     <CardTitle className="text-base">By Location Type</CardTitle>
                   </div>
                   <CardDescription>
@@ -312,19 +341,24 @@ export default function AnalyticsView({ data }: AnalyticsViewProps) {
       {/* Key Insights Section */}
       {insights.length > 0 && (
         <Collapsible open={insightsOpen} onOpenChange={setInsightsOpen}>
-          <section aria-labelledby="insights-title">
-            <Card className="bg-gradient-to-br from-slate-50 to-slate-100/50 border-slate-200">
+          <section aria-labelledby="insights-title" className="animate-fade-in-up delay-500">
+            <Card>
               <CardHeader className="pb-3">
                 <CollapsibleTrigger
                   type="button"
                   onClick={() => setInsightsOpen(!insightsOpen)}
-                  className="flex flex-col gap-1 text-left cursor-pointer"
+                  className="flex flex-col gap-1 text-left cursor-pointer group"
                 >
                   <div className="flex items-center gap-2">
-                    <CardTitle className="text-lg" id="insights-title">Key Insights</CardTitle>
+                    <div className="p-2 rounded-lg bg-coral/10">
+                      <Sparkles className="h-4 w-4 text-coral" />
+                    </div>
+                    <CardTitle className="text-lg group-hover:text-coral transition-colors" id="insights-title">
+                      Key Insights
+                    </CardTitle>
                     <ChevronDown
                       className={cn(
-                        "h-5 w-5 text-muted-foreground transition-transform duration-200 shrink-0",
+                        "h-5 w-5 text-warm-gray/50 transition-transform duration-200 shrink-0",
                         insightsOpen ? "rotate-0" : "-rotate-90"
                       )}
                       aria-hidden="true"
@@ -332,25 +366,25 @@ export default function AnalyticsView({ data }: AnalyticsViewProps) {
                   </div>
                 </CollapsibleTrigger>
               </CardHeader>
-              <CollapsibleContent >
+              <CollapsibleContent>
                 <CardContent>
                   <ul className="space-y-3">
                     {insights.map((insight, index) => (
-                      <li key={index} className="flex items-start gap-3">
+                      <li key={index} className="flex items-start gap-3 p-3 rounded-xl bg-white/60 border border-white">
                         <div className={cn(
-                          "mt-0.5 p-1 rounded-full shrink-0",
+                          "mt-0.5 p-1.5 rounded-full shrink-0",
                           insight.type === 'positive' ? 'bg-emerald-100' :
-                          insight.type === 'negative' ? 'bg-red-100' : 'bg-blue-100'
+                          insight.type === 'negative' ? 'bg-red-100' : 'bg-teal/20'
                         )}>
                           {insight.type === 'positive' ? (
-                            <TrendingDown className="h-3 w-3 text-emerald-600" />
+                            <TrendingDown className="h-3.5 w-3.5 text-emerald-600" />
                           ) : insight.type === 'negative' ? (
-                            <TrendingUp className="h-3 w-3 text-red-600" />
+                            <TrendingUp className="h-3.5 w-3.5 text-red-600" />
                           ) : (
-                            <Lightbulb className="h-3 w-3 text-blue-600" />
+                            <Lightbulb className="h-3.5 w-3.5 text-teal" />
                           )}
                         </div>
-                        <span className="text-sm text-slate-700">{insight.text}</span>
+                        <span className="text-sm text-warm-gray font-medium">{insight.text}</span>
                       </li>
                     ))}
                   </ul>
@@ -374,24 +408,25 @@ interface ProviderCardProps {
 
 function ProviderCard({ provider, totalQuotes, isMarketLeader, isBestValue }: ProviderCardProps) {
   const theme = getProviderTheme(provider.provider)
+  const providerName = formatProviderName(provider.provider)
   const marketShare = totalQuotes > 0 ? (provider.totalQuotes / totalQuotes) * 100 : 0
   const surgeLevel = getSurgeLevel(provider.averageSurgeMultiplier)
 
   return (
     <Card className={cn(
-      "relative transition-shadow hover:shadow-md h-full",
-      isMarketLeader && "border-2 border-amber-400 shadow-amber-100 shadow-md"
+      "relative transition-all duration-300 hover:shadow-xl hover:-translate-y-1 h-full",
+      isMarketLeader && "border-2 border-golden shadow-lg shadow-golden/10"
     )}>
       {/* Badge indicators */}
       <div className="absolute top-3 right-3 flex gap-1.5">
         {isMarketLeader && (
-          <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100 text-[10px] px-1.5">
+          <Badge className="bg-golden/10 text-golden hover:bg-golden/20 border-0 text-[10px] px-1.5">
             <Award className="h-3 w-3 mr-0.5" aria-hidden="true" />
             Leader
           </Badge>
         )}
         {isBestValue && (
-          <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 text-[10px] px-1.5">
+          <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border-0 text-[10px] px-1.5">
             <TrendingDown className="h-3 w-3 mr-0.5" aria-hidden="true" />
             Low Surge
           </Badge>
@@ -400,36 +435,41 @@ function ProviderCard({ provider, totalQuotes, isMarketLeader, isBestValue }: Pr
 
       <CardHeader className="pb-2">
         <div className="flex items-center gap-3">
-          <div className={cn("p-2.5 rounded-lg", theme.bg)}>
-            <theme.icon className={cn("h-5 w-5", theme.text)} aria-hidden="true" />
+          <div className={cn("p-3 rounded-xl", theme.bg)}>
+            <ProviderLogo
+              theme={theme}
+              size={28}
+              className="h-6 w-6"
+              iconClassName={cn("h-6 w-6", theme.text)}
+            />
           </div>
-          <CardTitle className="text-lg">{provider.provider}</CardTitle>
+          <CardTitle className="text-lg">{providerName}</CardTitle>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Market Share */}
         <div>
-          <div className="flex justify-between text-sm mb-1">
-            <span className="text-muted-foreground">Market Share</span>
-            <span className="font-semibold">{formatPercentage(marketShare, 0)}</span>
+          <div className="flex justify-between text-sm mb-1.5">
+            <span className="text-warm-gray/60">Market Share</span>
+            <span className="font-bold text-warm-gray">{formatPercentage(marketShare, 0)}</span>
           </div>
-          <div className="h-2 bg-muted rounded-full overflow-hidden">
+          <div className="h-3 bg-cream rounded-full overflow-hidden">
             <div
               className={cn("h-full rounded-full transition-all", theme.accent)}
               style={{ width: `${marketShare}%` }}
             />
           </div>
-          <p className="text-xs text-muted-foreground mt-1">
+          <p className="text-xs text-warm-gray/50 mt-1.5">
             {provider.totalQuotes.toLocaleString()} quotes
           </p>
         </div>
 
         {/* Surge Stats */}
-        <div className="grid grid-cols-2 gap-3 pt-2 border-t">
+        <div className="grid grid-cols-2 gap-3 pt-3 border-t border-border">
           <div>
-            <p className="text-xs text-muted-foreground">Surge Frequency</p>
+            <p className="text-xs text-warm-gray/50 mb-1">Surge Frequency</p>
             <p className={cn(
-              "text-lg font-semibold",
+              "stat-number text-2xl",
               provider.surgePercentage >= 50 ? "text-red-600" :
               provider.surgePercentage >= 25 ? "text-amber-600" :
               "text-emerald-600"
@@ -438,21 +478,21 @@ function ProviderCard({ provider, totalQuotes, isMarketLeader, isBestValue }: Pr
             </p>
           </div>
           <div>
-            <p className="text-xs text-muted-foreground">Avg Multiplier</p>
-            <p className={cn("text-lg font-semibold", getSurgeLevelColor(surgeLevel).split(' ')[0])}>
+            <p className="text-xs text-warm-gray/50 mb-1">Avg Multiplier</p>
+            <p className={cn("stat-number text-2xl", getSurgeLevelColor(surgeLevel).split(' ')[0])}>
               {formatSurgeMultiplier(provider.averageSurgeMultiplier)}
             </p>
           </div>
         </div>
 
         {/* Max Surge */}
-        <div className="flex items-center justify-between text-sm bg-muted/50 rounded-lg px-3 py-2">
-          <span className="text-muted-foreground flex items-center gap-1.5">
-            <Zap className="h-3 w-3" aria-hidden="true" />
+        <div className="flex items-center justify-between text-sm bg-cream rounded-xl px-4 py-3">
+          <span className="text-warm-gray/60 flex items-center gap-1.5">
+            <Zap className="h-3.5 w-3.5 text-amber-500" aria-hidden="true" />
             Max Surge Observed
           </span>
           <Badge variant="outline" className={cn(
-            "font-mono",
+            "font-mono font-bold",
             getSurgeLevelColor(getSurgeLevel(provider.maxSurgeMultiplier))
           )}>
             {formatSurgeMultiplier(provider.maxSurgeMultiplier)}
@@ -470,11 +510,11 @@ function TimeSlotCard({ slot }: { slot: TimeSlotInsight }) {
   const getTimeIcon = (timeSlot: string) => {
     switch (timeSlot) {
       case 'Rush Hour':
-        return <Sunrise className="h-4 w-4 text-orange-500" />
+        return <Sunrise className="h-4 w-4 text-coral" />
       case 'Late Night':
         return <Moon className="h-4 w-4 text-indigo-500" />
       default:
-        return <Sun className="h-4 w-4 text-amber-500" />
+        return <Sun className="h-4 w-4 text-golden" />
     }
   }
 
@@ -490,29 +530,29 @@ function TimeSlotCard({ slot }: { slot: TimeSlotInsight }) {
   }
 
   return (
-    <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors">
+    <div className="flex items-center justify-between p-4 bg-cream/50 rounded-xl hover:bg-cream transition-colors border border-transparent hover:border-border">
       <div className="flex items-center gap-3">
-        <div className="p-2 bg-background rounded-lg shadow-sm" aria-hidden="true">
+        <div className="p-2.5 bg-white rounded-xl shadow-sm" aria-hidden="true">
           {getTimeIcon(slot.timeSlot)}
         </div>
         <div>
-          <p className="font-medium text-sm">{slot.timeSlot}</p>
-          <p className="text-xs text-muted-foreground">{getTimeDescription(slot.timeSlot)}</p>
+          <p className="font-semibold text-warm-gray text-sm">{slot.timeSlot}</p>
+          <p className="text-xs text-warm-gray/50">{getTimeDescription(slot.timeSlot)}</p>
         </div>
       </div>
       <div className="text-right">
         <div className="flex items-center gap-2">
-          <Badge variant="outline" className="text-xs">
+          <Badge variant="outline" className="text-xs bg-white">
             {slot.tripCount} trips
           </Badge>
           <span className={cn(
-            "text-sm font-mono px-2 py-0.5 rounded",
+            "text-sm font-mono font-bold px-2.5 py-1 rounded-lg",
             getSurgeLevelColor(surgeLevel)
           )}>
             {formatSurgeMultiplier(slot.averageSurgeMultiplier)}
           </span>
         </div>
-        <p className="text-xs text-muted-foreground mt-1">
+        <p className="text-xs text-warm-gray/50 mt-1">
           {formatPercentage(slot.surgePercentage)} with surge
         </p>
       </div>
@@ -524,15 +564,15 @@ function TimeSlotCard({ slot }: { slot: TimeSlotInsight }) {
 function LocationCard({ location }: { location: LocationInsight }) {
   const surgeLevel = getSurgeLevel(location.averageSurgeMultiplier)
   const locationName = location.locationType === 'CBD'
-    ? 'Central Business District (CBD)'
+    ? 'Central Business District'
     : location.locationType
 
   const getLocationIcon = (locationType: string) => {
     switch (locationType) {
       case 'Airport':
-        return <Plane className="h-4 w-4 text-blue-500" />
+        return <Plane className="h-4 w-4 text-teal" />
       case 'CBD':
-        return <Building2 className="h-4 w-4 text-slate-600" />
+        return <Building2 className="h-4 w-4 text-warm-gray" />
       default:
         return <Home className="h-4 w-4 text-emerald-500" />
     }
@@ -550,29 +590,29 @@ function LocationCard({ location }: { location: LocationInsight }) {
   }
 
   return (
-    <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors">
+    <div className="flex items-center justify-between p-4 bg-cream/50 rounded-xl hover:bg-cream transition-colors border border-transparent hover:border-border">
       <div className="flex items-center gap-3">
-        <div className="p-2 bg-background rounded-lg shadow-sm" aria-hidden="true">
+        <div className="p-2.5 bg-white rounded-xl shadow-sm" aria-hidden="true">
           {getLocationIcon(location.locationType)}
         </div>
         <div>
-          <p className="font-medium text-sm">{locationName}</p>
-          <p className="text-xs text-muted-foreground">{getLocationDescription(location.locationType)}</p>
+          <p className="font-semibold text-warm-gray text-sm">{locationName}</p>
+          <p className="text-xs text-warm-gray/50">{getLocationDescription(location.locationType)}</p>
         </div>
       </div>
       <div className="text-right">
         <div className="flex items-center gap-2">
-          <Badge variant="outline" className="text-xs">
+          <Badge variant="outline" className="text-xs bg-white">
             {location.tripCount} trips
           </Badge>
           <span className={cn(
-            "text-sm font-mono px-2 py-0.5 rounded",
+            "text-sm font-mono font-bold px-2.5 py-1 rounded-lg",
             getSurgeLevelColor(surgeLevel)
           )}>
             {formatSurgeMultiplier(location.averageSurgeMultiplier)}
           </span>
         </div>
-        <p className="text-xs text-muted-foreground mt-1">
+        <p className="text-xs text-warm-gray/50 mt-1">
           {formatPercentage(location.surgePercentage)} with surge
         </p>
       </div>
@@ -596,16 +636,18 @@ function TopRoutesSection({ routes, isOpen, onToggle }: TopRoutesSectionProps) {
             <CollapsibleTrigger
               type="button"
               onClick={onToggle}
-              className="inline-flex items-center gap-2 text-left cursor-pointer"
+              className="inline-flex items-center gap-2 text-left cursor-pointer group"
             >
-              <Route className="h-5 w-5 text-blue-500" aria-hidden="true" />
+              <div className="p-2 rounded-lg bg-coral/10">
+                <Route className="h-5 w-5 text-coral" />
+              </div>
               <div className="inline-flex items-center gap-1">
-                <h2 id="top-routes-title" className="text-xl font-semibold">
+                <h2 id="top-routes-title" className="text-xl font-bold text-warm-gray group-hover:text-coral transition-colors">
                   Top Routes by Volume
                 </h2>
                 <ChevronDown
                   className={cn(
-                    "h-5 w-5 text-muted-foreground transition-transform duration-200 shrink-0",
+                    "h-5 w-5 text-warm-gray/50 transition-transform duration-200 shrink-0",
                     isOpen ? "rotate-0" : "-rotate-90"
                   )}
                   aria-hidden="true"
@@ -613,14 +655,14 @@ function TopRoutesSection({ routes, isOpen, onToggle }: TopRoutesSectionProps) {
               </div>
             </CollapsibleTrigger>
           </div>
-          <CollapsibleContent >
+          <CollapsibleContent>
             <Card>
               <CardContent className="py-12 text-center">
-                <div className="mx-auto mb-4 p-3 rounded-full bg-slate-100 w-fit">
-                  <MapPin className="h-6 w-6 text-slate-400" aria-hidden="true" />
+                <div className="mx-auto mb-4 p-4 rounded-full bg-cream w-fit">
+                  <MapPin className="h-8 w-8 text-warm-gray/30" />
                 </div>
-                <p className="text-muted-foreground">No route data available yet</p>
-                <p className="text-sm text-muted-foreground mt-1">
+                <p className="text-warm-gray/60 font-medium">No route data available yet</p>
+                <p className="text-sm text-warm-gray/40 mt-1">
                   Book some rides to see popular routes appear here
                 </p>
               </CardContent>
@@ -635,19 +677,21 @@ function TopRoutesSection({ routes, isOpen, onToggle }: TopRoutesSectionProps) {
     <Collapsible open={isOpen} onOpenChange={onToggle}>
       <section aria-labelledby="top-routes-title">
         <div className="mb-4">
-          <CollapsibleTrigger
-            type="button"
-            onClick={onToggle}
-            className="inline-flex items-center gap-2 text-left cursor-pointer"
-          >
-            <Route className="h-5 w-5 text-blue-500" aria-hidden="true" />
+            <CollapsibleTrigger
+              type="button"
+              onClick={onToggle}
+              className="inline-flex items-center gap-2 text-left cursor-pointer group"
+            >
+              <div className="p-2 rounded-lg bg-coral/10">
+                <Route className="h-5 w-5 text-coral" />
+            </div>
             <div className="inline-flex items-center gap-1">
-              <h2 id="top-routes-title" className="text-xl font-semibold">
+              <h2 id="top-routes-title" className="text-xl font-bold text-warm-gray group-hover:text-coral transition-colors">
                 Top Routes by Volume
               </h2>
               <ChevronDown
                 className={cn(
-                  "h-5 w-5 text-muted-foreground transition-transform duration-200 shrink-0",
+                  "h-5 w-5 text-warm-gray/50 transition-transform duration-200 shrink-0",
                   isOpen ? "rotate-0" : "-rotate-90"
                 )}
                 aria-hidden="true"
@@ -655,10 +699,9 @@ function TopRoutesSection({ routes, isOpen, onToggle }: TopRoutesSectionProps) {
             </div>
           </CollapsibleTrigger>
         </div>
-        <CollapsibleContent >
-        <Card>
-          <CardHeader className="pb-3" />
-            <CardContent className="space-y-3">
+        <CollapsibleContent>
+          <Card className="hover:shadow-lg transition-shadow">
+            <CardContent className="space-y-3 pt-6">
               {routes.map((route, index) => (
                 <RouteCard key={`${route.origin}-${route.destination}`} route={route} rank={index + 1} />
               ))}
@@ -678,22 +721,22 @@ function RouteCard({ route, rank }: { route: RouteAnalytics; rank: number }) {
   return (
     <div
       className={cn(
-        "flex items-center justify-between p-4 rounded-lg transition-colors",
+        "flex items-center justify-between p-4 rounded-xl transition-all",
         isTopRoute
-          ? "bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200"
-          : "bg-muted/30 hover:bg-muted/50"
+          ? "bg-gradient-to-r from-golden-light to-coral-light border-2 border-golden/30"
+          : "bg-cream/50 hover:bg-cream border border-transparent hover:border-border"
       )}
     >
       <div className="flex items-center gap-4">
         {/* Rank Badge */}
         <div
           className={cn(
-            "flex items-center justify-center w-8 h-8 rounded-full font-bold text-sm shrink-0",
+            "flex items-center justify-center w-9 h-9 rounded-xl font-bold text-sm shrink-0",
             isTopRoute
-              ? "bg-amber-100 text-amber-700"
+              ? "bg-golden text-white shadow-md shadow-golden/30"
               : rank <= 3
-                ? "bg-slate-200 text-slate-700"
-                : "bg-muted text-muted-foreground"
+                ? "bg-warm-gray/10 text-warm-gray"
+                : "bg-cream text-warm-gray/50"
           )}
         >
           {isTopRoute ? <Trophy className="h-4 w-4" /> : rank}
@@ -702,23 +745,23 @@ function RouteCard({ route, rank }: { route: RouteAnalytics; rank: number }) {
         {/* Route Info */}
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-medium text-sm truncate max-w-[180px]" title={route.origin}>
+            <span className="font-semibold text-sm text-warm-gray truncate max-w-[180px]" title={route.origin}>
               {route.origin}
             </span>
-            <ArrowRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" aria-hidden="true" />
-            <span className="font-medium text-sm truncate max-w-[180px]" title={route.destination}>
+            <ArrowRight className="h-3.5 w-3.5 text-coral shrink-0" aria-hidden="true" />
+            <span className="font-semibold text-sm text-warm-gray truncate max-w-[180px]" title={route.destination}>
               {route.destination}
             </span>
           </div>
           <div className="flex items-center gap-3 mt-1.5 flex-wrap">
-            <Badge variant="outline" className="text-xs">
+            <Badge variant="outline" className="text-xs bg-white">
               {route.tripCount} {route.tripCount === 1 ? 'booking' : 'bookings'}
             </Badge>
-            <span className="text-xs text-muted-foreground">
+            <span className="text-xs text-warm-gray/50">
               {formatCurrency(route.avgFare)} avg
             </span>
             {route.avgDistance > 0 && (
-              <span className="text-xs text-muted-foreground">
+              <span className="text-xs text-warm-gray/50">
                 {route.avgDistance} km
               </span>
             )}
@@ -728,11 +771,16 @@ function RouteCard({ route, rank }: { route: RouteAnalytics; rank: number }) {
 
       {/* Most Popular Provider */}
       <div className="flex items-center gap-2 shrink-0">
-        <div className={cn("p-1.5 rounded", theme.bg)}>
-          <theme.icon className={cn("h-3.5 w-3.5", theme.text)} aria-hidden="true" />
+        <div className={cn("p-1.5 rounded-lg", theme.bg)}>
+          <ProviderLogo
+            theme={theme}
+            size={18}
+            className="h-3.5 w-3.5"
+            iconClassName={cn("h-3.5 w-3.5", theme.text)}
+          />
         </div>
-        <span className="text-xs text-muted-foreground hidden sm:inline">
-          {route.mostPopularProvider}
+        <span className="text-xs text-warm-gray/60 hidden sm:inline font-medium">
+          {formatProviderName(route.mostPopularProvider)}
         </span>
       </div>
     </div>
@@ -758,7 +806,7 @@ function generateInsights(
   if (marketLeader && totalQuotes > 0) {
     const share = ((marketLeader.totalQuotes / totalQuotes) * 100).toFixed(0)
     insights.push({
-      text: `${marketLeader.provider} leads the market with ${share}% of all quotes`,
+      text: `${formatProviderName(marketLeader.provider)} leads the market with ${share}% of all quotes`,
       type: 'neutral',
     })
   }
@@ -772,7 +820,7 @@ function generateInsights(
     if (bestValue.provider !== worstSurge.provider) {
       const diff = (worstSurge.surgePercentage - bestValue.surgePercentage).toFixed(0)
       insights.push({
-        text: `${bestValue.provider} has ${diff}% less surge frequency than ${worstSurge.provider}`,
+        text: `${formatProviderName(bestValue.provider)} has ${diff}% less surge frequency than ${formatProviderName(worstSurge.provider)}`,
         type: 'positive',
       })
     }
@@ -819,4 +867,3 @@ function generateInsights(
 
   return insights.slice(0, 5) // Limit to 5 insights
 }
-

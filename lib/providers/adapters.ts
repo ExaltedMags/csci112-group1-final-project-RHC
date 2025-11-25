@@ -15,9 +15,9 @@ export interface ProviderQuote {
 }
 
 export const PROVIDER_LABELS: Record<string, string> = {
-  GrabPH: "Grab (4-wheel)",
-  Angkas: "Angkas (MC Taxi)",
-  JoyRideMC: "JoyRide (MC Taxi)",
+  GrabPH: "Grab",
+  Angkas: "Angkas",
+  JoyRideMC: "JoyRide",
 };
 
 // Simulated distance calculator (since we don't have Google Maps API)
