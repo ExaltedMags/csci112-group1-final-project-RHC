@@ -150,9 +150,13 @@ export async function POST(req: Request) {
       });
     }
 
-    const { quotes } = await getAllQuotes(distanceKm, durationMinutes, resolvedOriginLabel);
-
     const createdAt = new Date();
+    const { quotes } = await getAllQuotes(
+      distanceKm,
+      durationMinutes,
+      resolvedOriginLabel,
+      { hour: createdAt.getHours(), dayOfWeek: createdAt.getDay() }
+    );
 
     const tripDoc: TripDbDoc = {
       origin: resolvedOriginLabel,

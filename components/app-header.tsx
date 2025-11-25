@@ -18,6 +18,9 @@ export function AppHeader() {
           <Button variant="ghost" asChild>
             <Link href="/history">History</Link>
           </Button>
+          <Button variant="ghost" asChild>
+            <Link href="/analytics">Analytics</Link>
+          </Button>
           <UserMenu />
         </nav>
       </div>

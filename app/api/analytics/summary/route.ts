@@ -163,6 +163,74 @@ export async function GET(req: Request) {
       count: item.count
     }));
 
+    const surgeImpactAggregation = await tripsCollection
+      .aggregate([
+        {
+          $match: {
+            status: 'BOOKED',
+            userId,
+            selectedQuote: { $exists: true },
+          },
+        },
+        {
+          $addFields: {
+            selectedFare: "$selectedQuote.minFare",
+            surgeMultiplier: "$selectedQuote.surgeMultiplier",
+          },
+        },
+        {
+          $addFields: {
+            baseFare: {
+              $cond: [
+                { $gt: ["$surgeMultiplier", 0] },
+                { $divide: ["$selectedFare", "$surgeMultiplier"] },
+                "$selectedFare"
+              ]
+            }
+          }
+        },
+        {
+          $addFields: {
+            surgeFee: {
+              $max: [
+                0,
+                { $subtract: ["$selectedFare", "$baseFare"] }
+              ]
+            },
+            isSurgeTrip: { $gt: ["$surgeMultiplier", 1] }
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            totalTrips: { $sum: 1 },
+            surgeTrips: {
+              $sum: { $cond: ["$isSurgeTrip", 1, 0] }
+            },
+            totalSurgeFees: { $sum: "$surgeFee" }
+          }
+        },
+        {
+          $addFields: {
+            avgSurgeFeePerTrip: {
+              $cond: [
+                { $gt: ["$totalTrips", 0] },
+                { $divide: ["$totalSurgeFees", "$totalTrips"] },
+                0
+              ]
+            }
+          }
+        }
+      ])
+      .toArray();
+
+    const surgeImpact = surgeImpactAggregation[0] ?? {
+      totalTrips: 0,
+      surgeTrips: 0,
+      totalSurgeFees: 0,
+      avgSurgeFeePerTrip: 0
+    };
+
     return NextResponse.json({
       totalTrips,
       perProvider,
@@ -170,7 +238,8 @@ export async function GET(req: Request) {
       savings,
       referralsPerProvider,
       referralsByDeviceType,
-      referralsByProviderAndDevice
+      referralsByProviderAndDevice,
+      surgeImpact
     });
   } catch (error) {
     console.error('Error fetching analytics summary:', error);

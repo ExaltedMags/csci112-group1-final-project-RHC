@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { formatDistanceToNow } from "date-fns"
-import { Car, Bike, BarChart3, PiggyBank } from "lucide-react"
+import { Car, Bike, BarChart3, PiggyBank, ExternalLink } from "lucide-react"
 
 // Serialized trip type (plain object for client-side, not Mongoose document)
 interface SerializedTrip {
@@ -73,26 +73,18 @@ export default function HistoryView({ history, analytics, savings, referrals }: 
   const totalTrips = analytics.reduce((acc, curr) => acc + curr.count, 0)
   const topProvider = analytics.sort((a, b) => b.count - a.count)[0]
 
+  // Calculate total referral clicks
+  const totalReferrals = referrals.reduce((acc, r) => acc + r.count, 0)
+  const topReferralProvider = referrals.sort((a, b) => b.count - a.count)[0]
+
   return (
     <div className="space-y-8">
       <div className="flex flex-col gap-2">
         <h1 className="text-3xl font-bold tracking-tight">Trip History</h1>
-        
-        {/* Referrals Badge/List */}
-        {referrals.length > 0 && (
-          <div className="flex flex-wrap gap-2 items-center">
-               <span className="text-sm text-muted-foreground">Referral clicks:</span>
-               {referrals.map(r => (
-                  <Badge key={r.providerCode} variant="secondary" className="text-xs">
-                     {r.providerCode} {r.count}
-                  </Badge>
-               ))}
-          </div>
-        )}
       </div>
 
       {/* Analytics Summary */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Trips</CardTitle>
@@ -133,7 +125,7 @@ export default function HistoryView({ history, analytics, savings, referrals }: 
           </CardContent>
         </Card>
         
-        {/* New Savings Card */}
+        {/* Savings Card */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Savings Opportunity</CardTitle>
@@ -147,6 +139,29 @@ export default function HistoryView({ history, analytics, savings, referrals }: 
              <div className="mt-2 text-xs text-muted-foreground border-t pt-2">
                 Avg extra per trip: ₱{savings.avgOverpayPerTrip}
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Referral Clicks Card */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Referral Clicks</CardTitle>
+            <ExternalLink className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{totalReferrals}</div>
+            <p className="text-xs text-muted-foreground">
+              {topReferralProvider ? `Top: ${topReferralProvider.providerCode}` : "No clicks yet"}
+            </p>
+            {referrals.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1.5 border-t pt-2">
+                {referrals.map(r => (
+                  <Badge key={r.providerCode} variant="secondary" className="text-[10px] px-1.5 py-0.5">
+                    {r.providerCode} {r.count}
+                  </Badge>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
