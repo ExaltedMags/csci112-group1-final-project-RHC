@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import dynamic from "next/dynamic"
 import { useRouter } from "next/navigation"
 
@@ -12,19 +12,17 @@ import {
   generateMockDriver,
   getStepByIndex,
   type MockDriver,
-  type RideStatus,
 } from "@/lib/ride-lifecycle"
+import { useDriverAnimation } from "@/lib/use-driver-animation"
 import { RideStepIndicator, RideProgressBar } from "@/components/ride-step-indicator"
 import { DriverCard, DriverCardSkeleton } from "@/components/driver-card"
 import { RideFeedbackModal } from "@/components/ride-feedback-modal"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import {
   ArrowLeft,
   Navigation2,
   Clock,
-  MapPin,
   Phone,
   AlertCircle,
   Share2,
@@ -47,8 +45,6 @@ interface TripProgressViewProps {
   trip: ITrip & { _id: string }
 }
 
-type RouteCoordinate = { lat: number; lng: number }
-
 export default function TripProgressView({ trip }: TripProgressViewProps) {
   const router = useRouter()
   const providerId = trip.selectedQuote?.provider ?? trip.quotes[0]?.provider ?? "GrabPH"
@@ -59,16 +55,22 @@ export default function TripProgressView({ trip }: TripProgressViewProps) {
   // State
   const [currentStepIndex, setCurrentStepIndex] = useState(0)
   const [driver, setDriver] = useState<MockDriver | null>(null)
-  const [driverPosition, setDriverPosition] = useState<RouteCoordinate | null>(null)
   const [showFeedback, setShowFeedback] = useState(false)
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false)
   
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const animationRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const currentStep = getStepByIndex(currentStepIndex)
   const isCompleted = currentStep.status === "COMPLETED"
   const showDriverCard = currentStepIndex >= 1 // Show after BOOKED
+
+  // Driver animation along route
+  const { driverPosition, progress: driverProgress, isAnimating } = useDriverAnimation({
+    routeCoordinates: trip.routeGeometry?.coordinates ?? null,
+    status: currentStep.status,
+    enabled: currentStepIndex >= 1, // Only animate after driver is assigned
+    speedMultiplier: 1.0,
+  })
 
   const providerLabel = useMemo(() => {
     return PROVIDER_LABELS[providerId]?.split("(")[0].trim() ?? providerId
@@ -95,77 +97,6 @@ export default function TripProgressView({ trip }: TripProgressViewProps) {
       setDriver(generateMockDriver(isMC))
     }
   }, [currentStepIndex, driver, isMC])
-
-  // Simulate driver position moving along route
-  const simulateDriverMovement = useCallback(() => {
-    if (!trip.routeGeometry?.coordinates?.length || currentStepIndex < 1) {
-      return
-    }
-
-    const coords = trip.routeGeometry.coordinates
-    const totalPoints = coords.length
-
-    // Determine position based on current step
-    let targetProgress = 0
-    switch (currentStep.status) {
-      case "DRIVER_ASSIGNED":
-        targetProgress = 0.1
-        break
-      case "DRIVER_ARRIVING":
-        targetProgress = 0.3
-        break
-      case "DRIVER_ARRIVED":
-        targetProgress = 0
-        break
-      case "TRIP_STARTED":
-        targetProgress = 0.2
-        break
-      case "ON_TRIP":
-        targetProgress = 0.6
-        break
-      case "COMPLETED":
-        targetProgress = 1
-        break
-      default:
-        targetProgress = 0
-    }
-
-    // For arriving states, position from end (destination to origin)
-    // For trip states, position from start (origin to destination)
-    const isApproaching = ["DRIVER_ASSIGNED", "DRIVER_ARRIVING", "DRIVER_ARRIVED"].includes(currentStep.status)
-    
-    let pointIndex: number
-    if (isApproaching) {
-      // Driver coming from somewhere to pickup (use origin area)
-      pointIndex = Math.floor(targetProgress * Math.min(5, totalPoints - 1))
-    } else {
-      // Driver going from origin to destination
-      pointIndex = Math.floor(targetProgress * (totalPoints - 1))
-    }
-
-    const coord = coords[Math.min(pointIndex, totalPoints - 1)]
-    if (coord) {
-      setDriverPosition({ lat: coord.lat, lng: coord.lng })
-    }
-  }, [trip.routeGeometry?.coordinates, currentStepIndex, currentStep.status])
-
-  // Run driver movement simulation
-  useEffect(() => {
-    if (currentStepIndex >= 1 && !isCompleted) {
-      simulateDriverMovement()
-      
-      // Animate driver position updates
-      animationRef.current = setInterval(() => {
-        simulateDriverMovement()
-      }, 2000)
-
-      return () => {
-        if (animationRef.current) {
-          clearInterval(animationRef.current)
-        }
-      }
-    }
-  }, [currentStepIndex, isCompleted, simulateDriverMovement])
 
   // Auto-advance through lifecycle steps
   useEffect(() => {
@@ -295,6 +226,15 @@ export default function TripProgressView({ trip }: TripProgressViewProps) {
             <p className="text-white text-sm font-medium text-center">
               {getStatusMessage()}
             </p>
+            {/* Driver progress indicator */}
+            {showDriverCard && !isCompleted && (
+              <div className="mt-2 h-1 bg-white/30 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-white rounded-full transition-all duration-300 ease-out"
+                  style={{ width: `${Math.round(driverProgress * 100)}%` }}
+                />
+              </div>
+            )}
           </div>
         </div>
 

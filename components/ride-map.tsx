@@ -84,6 +84,7 @@ export function RideMap({
     [hasPathPolyline, pathPoints, safeOrigin, safeDestination],
   )
 
+  // Calculate bounds with dynamic padding based on route extent
   const bounds = useMemo<LatLngBoundsExpression>(() => {
     const lats = extentPoints.map((point) => point.lat)
     const lngs = extentPoints.map((point) => point.lng)
@@ -93,11 +94,17 @@ export function RideMap({
     const west = Math.min(...lngs)
     const east = Math.max(...lngs)
 
-    const padding = 0.01 // ~1km padding for better view
+    // Calculate extent size to determine appropriate padding
+    const latSpan = north - south
+    const lngSpan = east - west
+    // Use 15% padding of the larger span, with min/max limits
+    const paddingFactor = 0.15
+    const latPadding = Math.max(0.005, Math.min(0.02, latSpan * paddingFactor))
+    const lngPadding = Math.max(0.005, Math.min(0.02, lngSpan * paddingFactor))
 
     return [
-      [south - padding, west - padding],
-      [north + padding, east + padding],
+      [south - latPadding, west - lngPadding],
+      [north + latPadding, east + lngPadding],
     ]
   }, [extentPoints])
 
@@ -326,17 +333,33 @@ export function RideMap({
           maxZoom={mapTileLayerConfig.maxZoom}
         />
 
+        {/* Route polyline - rendered with provider accent color */}
+        {/* Uses thicker weight (5px) and high opacity for clear visibility */}
         {hasAnimatedPolyline && polylineToRender.length >= 2 && (
-          <Polyline
-            positions={polylineToRender}
-            pathOptions={{
-              color: accentColor,
-              weight: 6,
-              opacity: 0.85,
-              lineCap: "round",
-              lineJoin: "round",
-            }}
-          />
+          <>
+            {/* Subtle shadow/outline for better contrast on varied backgrounds */}
+            <Polyline
+              positions={polylineToRender}
+              pathOptions={{
+                color: "#000000",
+                weight: 7,
+                opacity: 0.1,
+                lineCap: "round",
+                lineJoin: "round",
+              }}
+            />
+            {/* Main route line with provider accent color */}
+            <Polyline
+              positions={polylineToRender}
+              pathOptions={{
+                color: accentColor,
+                weight: 5,
+                opacity: 0.9,
+                lineCap: "round",
+                lineJoin: "round",
+              }}
+            />
+          </>
         )}
 
         <Marker position={originPoint} icon={pickupIcon} title={`Pickup: ${origin.label}`} />
@@ -363,6 +386,13 @@ export function RideMap({
   )
 }
 
+/**
+ * Map view controller that fits bounds to show the full route
+ * - Uses padding to ensure markers aren't at edges
+ * - Constrains zoom levels for optimal route visibility
+ * - minZoom: 11 prevents zooming out too far (route becomes tiny)
+ * - maxZoom: 16 prevents zooming in too close (route not visible)
+ */
 function MapViewController({
   bounds,
   fallbackCenter,
@@ -378,7 +408,17 @@ function MapViewController({
     }
 
     try {
-      map.fitBounds(bounds, { padding: [20, 20], maxZoom: 15 })
+      // Fit bounds with comfortable padding and zoom constraints
+      map.fitBounds(bounds, { 
+        padding: [40, 40],
+        maxZoom: 16,  // Don't zoom in too close
+      })
+      
+      // Ensure we don't zoom out too far (route should be clearly visible)
+      const currentZoom = map.getZoom()
+      if (currentZoom < 11) {
+        map.setZoom(11)
+      }
     } catch {
       map.setView(fallbackCenter, 13)
     }
@@ -387,56 +427,103 @@ function MapViewController({
   return null
 }
 
+/**
+ * Creates a compact, modern marker icon for pickup/dropoff points
+ * - Smaller size (20px) for cleaner map appearance
+ * - Proper anchor point aligned to marker center
+ * - Provider-themed colors passed via `color` parameter
+ */
 function createMarkerIcon(leaflet: LeafletLib, color: string) {
   return leaflet.divIcon({
     className: "",
-    html: `<span style="
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      width:30px;
-      height:30px;
-      border-radius:9999px;
-      box-shadow:0 6px 16px rgba(15,23,42,0.35);
-      border:3px solid #fff;
-      background:${color};
-      transform:translate(-50%, -50%);
-    "></span>`,
-    iconSize: [30, 30],
-    iconAnchor: [15, 30],
-    popupAnchor: [0, -28],
+    html: `<div style="
+      position: relative;
+      width: 20px;
+      height: 20px;
+    ">
+      <span style="
+        position: absolute;
+        top: 0;
+        left: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 20px;
+        height: 20px;
+        border-radius: 9999px;
+        box-shadow: 0 2px 8px rgba(15,23,42,0.25);
+        border: 2.5px solid #fff;
+        background: ${color};
+      "></span>
+    </div>`,
+    iconSize: [20, 20],
+    iconAnchor: [10, 10],
+    popupAnchor: [0, -12],
   })
 }
 
+/**
+ * Creates an animated driver marker icon that follows the route
+ * - Compact size (36px) with subtle pulsing animation
+ * - Provider-themed color for border and glow effects
+ * - Vehicle emoji (car/motorcycle) based on service type
+ * - Anchor point centered for accurate route following
+ */
 function createDriverIcon(leaflet: LeafletLib, color: string, isMC: boolean) {
   const vehicleEmoji = isMC ? "🏍️" : "🚗"
+  // Create a unique ID for this icon's animation to avoid CSS conflicts
+  const animId = `driver-${Math.random().toString(36).slice(2, 8)}`
+  
   return leaflet.divIcon({
     className: "",
-    html: `<div style="
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      width:44px;
-      height:44px;
-      border-radius:9999px;
-      box-shadow:0 4px 12px rgba(15,23,42,0.3);
-      border:3px solid ${color};
-      background:white;
-      transform:translate(-50%, -50%);
-      font-size:20px;
-      animation: pulse 2s infinite;
-    ">
-      <style>
-        @keyframes pulse {
-          0%, 100% { transform: translate(-50%, -50%) scale(1); }
-          50% { transform: translate(-50%, -50%) scale(1.05); }
-        }
-      </style>
-      ${vehicleEmoji}
-    </div>`,
-    iconSize: [44, 44],
-    iconAnchor: [22, 44],
-    popupAnchor: [0, -40],
+    html: `
+      <div style="
+        position: relative;
+        width: 36px;
+        height: 36px;
+      ">
+        <!-- Subtle pulse ring for visibility -->
+        <div style="
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          width: 36px;
+          height: 36px;
+          transform: translate(-50%, -50%);
+          border-radius: 9999px;
+          background: ${color}18;
+          animation: ${animId}-pulse 2s ease-out infinite;
+        "></div>
+        <!-- Main driver icon -->
+        <div style="
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 32px;
+          height: 32px;
+          border-radius: 9999px;
+          box-shadow: 0 2px 10px ${color}40, 0 1px 4px rgba(0,0,0,0.1);
+          border: 2.5px solid ${color};
+          background: white;
+          font-size: 14px;
+        ">
+          ${vehicleEmoji}
+        </div>
+        <style>
+          @keyframes ${animId}-pulse {
+            0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.5; }
+            50% { transform: translate(-50%, -50%) scale(1.3); opacity: 0; }
+          }
+        </style>
+      </div>
+    `,
+    iconSize: [36, 36],
+    iconAnchor: [18, 18],
+    popupAnchor: [0, -20],
   })
 }
 

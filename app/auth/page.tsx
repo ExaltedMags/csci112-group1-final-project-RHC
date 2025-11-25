@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, type FormEvent } from "react"
+import { useState, useMemo, type FormEvent } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -14,6 +14,10 @@ export default function AuthPage() {
   const [name, setName] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const isButtonDisabled = useMemo(() => {
+    return isLoading || !email.trim()
+  }, [isLoading, email])
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -46,6 +50,9 @@ export default function AuthPage() {
         name: user.name,
       }))
 
+      // Trigger custom event to notify UserProvider
+      window.dispatchEvent(new Event("auth-change"))
+
       // Redirect to home page
       router.push("/")
       router.refresh()
@@ -74,7 +81,10 @@ export default function AuthPage() {
                 type="email"
                 placeholder="you@example.com"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value)
+                  setError(null)
+                }}
                 disabled={isLoading}
                 required
                 autoFocus
@@ -100,7 +110,7 @@ export default function AuthPage() {
             <Button
               type="submit"
               className="w-full h-12 text-base font-semibold shadow-lg shadow-primary/20"
-              disabled={isLoading || !email.trim()}
+              disabled={isButtonDisabled}
             >
               {isLoading ? (
                 <>

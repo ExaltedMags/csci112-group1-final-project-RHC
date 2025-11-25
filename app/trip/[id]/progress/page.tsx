@@ -18,12 +18,15 @@ export default async function TripProgressPage(props: PageProps) {
     notFound()
   }
 
+  // Serialize the trip for client-side consumption
+  // Using type assertion to unknown first to avoid strict type checking
+  // since we're converting from Mongoose document to plain object
   const serializedTrip = {
     ...trip,
     _id: trip._id.toString(),
     quotes: trip.quotes.map((quote) => ({ ...quote })),
     createdAt: trip.createdAt?.toISOString?.() ?? new Date().toISOString(),
-  } as ITrip & { _id: string }
+  } as unknown as ITrip & { _id: string }
 
   return <TripProgressView trip={serializedTrip} />
 }

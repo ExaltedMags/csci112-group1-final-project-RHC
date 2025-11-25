@@ -29,12 +29,6 @@ import {
   ShieldCheck,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { MultiStepLoader } from "@/components/ui/multi-step-loader"
-import {
-  PROVIDER_LIFECYCLE_STEPS,
-  PROVIDER_LIFECYCLE_STEP_DURATION_MS,
-  PROVIDER_LIFECYCLE_TOTAL_DURATION_MS,
-} from "@/lib/provider-lifecycle"
 import { getProviderTheme } from "@/lib/provider-theme"
 
 interface HandoffViewProps {
@@ -46,8 +40,7 @@ interface HandoffViewProps {
 export default function HandoffView({ trip, providerId, orsEnabled }: HandoffViewProps) {
   const router = useRouter()
   const [isBooking, setIsBooking] = useState(false)
-  const [showLifecycleOverlay, setShowLifecycleOverlay] = useState(false)
-  const loaderTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const navigationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isDev = process.env.NODE_ENV !== "production"
   const missingRouteGeometry = !(trip.routeGeometry?.coordinates?.length ?? 0)
   const usedMapboxFallback = trip.routeSource === "MAPBOX"
@@ -69,23 +62,23 @@ export default function HandoffView({ trip, providerId, orsEnabled }: HandoffVie
 
   const theme = getProviderTheme(providerId)
   const ProviderIcon = theme.icon
-  const navigationDelay = PROVIDER_LIFECYCLE_TOTAL_DURATION_MS + 800
 
-  const scheduleProgressNavigation = () => {
-    if (loaderTimeoutRef.current) {
-      clearTimeout(loaderTimeoutRef.current)
+  // Navigation to progress screen after booking
+  // Navigates immediately after API calls complete (no overlay delay)
+  const navigateToProgress = () => {
+    if (navigationTimeoutRef.current) {
+      clearTimeout(navigationTimeoutRef.current)
     }
-
-    loaderTimeoutRef.current = setTimeout(() => {
-      setShowLifecycleOverlay(false)
+    // Small delay for UX smoothness before navigating
+    navigationTimeoutRef.current = setTimeout(() => {
       router.push(`/trip/${trip._id}/progress`)
-    }, navigationDelay)
+    }, 300)
   }
 
   useEffect(() => {
     return () => {
-      if (loaderTimeoutRef.current) {
-        clearTimeout(loaderTimeoutRef.current)
+      if (navigationTimeoutRef.current) {
+        clearTimeout(navigationTimeoutRef.current)
       }
     }
   }, [])
@@ -102,7 +95,6 @@ export default function HandoffView({ trip, providerId, orsEnabled }: HandoffVie
     }
 
     setIsBooking(true)
-    setShowLifecycleOverlay(true)
 
     try {
       // Call the handoff API to log referral
@@ -142,7 +134,8 @@ export default function HandoffView({ trip, providerId, orsEnabled }: HandoffVie
     } catch (error) {
       console.error("Error during handoff:", error)
     } finally {
-      scheduleProgressNavigation()
+      // Navigate to progress screen where the in-screen lifecycle UI will show
+      navigateToProgress()
       setIsBooking(false)
     }
   }
@@ -178,14 +171,6 @@ export default function HandoffView({ trip, providerId, orsEnabled }: HandoffVie
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20 max-w-md mx-auto border-x shadow-xl relative overflow-hidden">
-      <MultiStepLoader
-        loadingStates={PROVIDER_LIFECYCLE_STEPS}
-        loading={showLifecycleOverlay}
-        duration={PROVIDER_LIFECYCLE_STEP_DURATION_MS}
-        loop={false}
-        accentColor={theme.mapColor}
-      />
-      
       {/* 1. TOP NAVIGATION BAR */}
       <div className="fixed top-0 w-full max-w-md z-50 bg-white/95 backdrop-blur-sm shadow-sm px-4 py-3 flex items-center justify-between">
         <Button 

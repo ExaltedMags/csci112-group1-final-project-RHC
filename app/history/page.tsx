@@ -16,7 +16,7 @@ interface AggregationResult {
   avgFare: number;
 }
 
-interface HistoryApiTrip extends ITrip {
+interface HistoryApiTrip extends Omit<ITrip, 'createdAt' | '_id'> {
   _id: string | { toString(): string }
   createdAt: string | Date
 }
@@ -34,10 +34,56 @@ interface AnalyticsSummary {
   referralsPerProvider?: { providerCode: string; count: number }[]
 }
 
+// Serialized trip type for client-side state (plain object, not Mongoose document)
+interface SerializedTrip {
+  _id: string
+  origin: string
+  destination: string
+  distanceKm: number
+  durationMinutes: number
+  originLocation?: {
+    label: string
+    lat: number
+    lng: number
+  }
+  destinationLocation?: {
+    label: string
+    lat: number
+    lng: number
+  }
+  routeGeometry?: {
+    coordinates: { lat: number; lng: number }[]
+  }
+  routeSource?: 'ORS' | 'MAPBOX'
+  status: 'SEARCHED' | 'BOOKED' | 'COMPLETED'
+  quotes: {
+    provider: string
+    fare?: number
+    minFare: number
+    maxFare: number
+    eta: number
+    surgeMultiplier: number
+    isSurge: boolean
+    category: '4-wheel' | '2-wheel'
+  }[]
+  selectedQuote?: {
+    provider: string
+    fare?: number
+    minFare: number
+    maxFare: number
+    eta: number
+    surgeMultiplier: number
+    isSurge: boolean
+    category: '4-wheel' | '2-wheel'
+  }
+  userId: string
+  createdAt: string
+}
+
 export default function HistoryPage() {
   const { user, isLoading: authLoading } = useCurrentUser()
   const router = useRouter()
-  const [history, setHistory] = useState<(ITrip & { _id: string })[]>([])
+  const [history, setHistory] = useState<SerializedTrip[]>([])
   const [analytics, setAnalytics] = useState<AggregationResult[]>([])
   const [savings, setSavings] = useState({ totalOverpay: 0, avgOverpayPerTrip: 0 })
   const [referrals, setReferrals] = useState<{ providerCode: string; count: number }[]>([])
@@ -53,6 +99,7 @@ export default function HistoryPage() {
     }
 
     async function fetchHistory() {
+      if (!user) return
       try {
         setIsLoading(true)
         const userId = user.userId
@@ -70,14 +117,24 @@ export default function HistoryPage() {
         const historyData = (await historyRes.json()) as HistoryApiResponse
         const analyticsData = (await analyticsRes.json()) as AnalyticsSummary
 
-        // Serialize history
-        const serializedHistory = (historyData.history || []).map((doc) => ({
-          ...doc,
+        // Serialize history - convert MongoDB documents to client-safe format
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const serializedHistory: SerializedTrip[] = (historyData.history || []).map((doc: any) => ({
           _id: typeof doc._id === "string" ? doc._id : doc._id.toString(),
-          createdAt: doc.createdAt instanceof Date ? doc.createdAt.toISOString() : doc.createdAt,
-          quotes: doc.quotes.map((quote) => ({ ...quote })),
-          selectedQuote: doc.selectedQuote ? { ...doc.selectedQuote } : undefined
-        })) as (ITrip & { _id: string })[]
+          origin: doc.origin,
+          destination: doc.destination,
+          distanceKm: doc.distanceKm,
+          durationMinutes: doc.durationMinutes,
+          originLocation: doc.originLocation,
+          destinationLocation: doc.destinationLocation,
+          routeGeometry: doc.routeGeometry,
+          routeSource: doc.routeSource,
+          status: doc.status,
+          quotes: doc.quotes.map((quote: any) => ({ ...quote })),
+          selectedQuote: doc.selectedQuote ? { ...doc.selectedQuote } : undefined,
+          userId: doc.userId,
+          createdAt: doc.createdAt instanceof Date ? doc.createdAt.toISOString() : String(doc.createdAt),
+        }))
 
         setHistory(serializedHistory)
         setAnalytics(historyData.analytics || [])

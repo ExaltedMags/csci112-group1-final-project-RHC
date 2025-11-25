@@ -7,8 +7,54 @@ import { Badge } from "@/components/ui/badge"
 import { formatDistanceToNow } from "date-fns"
 import { Car, Bike, BarChart3, PiggyBank } from "lucide-react"
 
+// Serialized trip type (plain object for client-side, not Mongoose document)
+interface SerializedTrip {
+  _id: string
+  origin: string
+  destination: string
+  distanceKm: number
+  durationMinutes: number
+  originLocation?: {
+    label: string
+    lat: number
+    lng: number
+  }
+  destinationLocation?: {
+    label: string
+    lat: number
+    lng: number
+  }
+  routeGeometry?: {
+    coordinates: { lat: number; lng: number }[]
+  }
+  routeSource?: 'ORS' | 'MAPBOX'
+  status: 'SEARCHED' | 'BOOKED' | 'COMPLETED'
+  quotes: {
+    provider: string
+    fare?: number
+    minFare: number
+    maxFare: number
+    eta: number
+    surgeMultiplier: number
+    isSurge: boolean
+    category: '4-wheel' | '2-wheel'
+  }[]
+  selectedQuote?: {
+    provider: string
+    fare?: number
+    minFare: number
+    maxFare: number
+    eta: number
+    surgeMultiplier: number
+    isSurge: boolean
+    category: '4-wheel' | '2-wheel'
+  }
+  userId: string
+  createdAt: string
+}
+
 interface HistoryViewProps {
-  history: (ITrip & { _id: string })[];
+  history: SerializedTrip[];
   analytics: {
     _id: string; // Provider name
     count: number;

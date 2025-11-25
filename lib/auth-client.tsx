@@ -1,6 +1,6 @@
 "use client"
 
-import { createContext, useContext, useEffect, useState, ReactNode } from "react"
+import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from "react"
 
 interface User {
   userId: string
@@ -22,20 +22,47 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
-  useEffect(() => {
-    // Load user from localStorage on mount
+  const loadUser = useCallback(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY)
       if (stored) {
         const parsed = JSON.parse(stored)
         setUser(parsed)
+      } else {
+        setUser(null)
       }
     } catch (error) {
       console.error("Failed to load user from storage:", error)
+      setUser(null)
     } finally {
       setIsLoading(false)
     }
   }, [])
+
+  useEffect(() => {
+    // Load user from localStorage on mount
+    loadUser()
+
+    // Listen for storage changes (e.g., when user logs in from another tab)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === STORAGE_KEY) {
+        loadUser()
+      }
+    }
+
+    // Listen for custom auth event (for same-tab updates)
+    const handleAuthChange = () => {
+      loadUser()
+    }
+
+    window.addEventListener("storage", handleStorageChange)
+    window.addEventListener("auth-change", handleAuthChange)
+
+    return () => {
+      window.removeEventListener("storage", handleStorageChange)
+      window.removeEventListener("auth-change", handleAuthChange)
+    }
+  }, [loadUser])
 
   const signOut = () => {
     localStorage.removeItem(STORAGE_KEY)
