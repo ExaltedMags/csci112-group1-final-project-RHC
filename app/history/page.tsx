@@ -118,8 +118,7 @@ export default function HistoryPage() {
         const analyticsData = (await analyticsRes.json()) as AnalyticsSummary
 
         // Serialize history - convert MongoDB documents to client-safe format
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const serializedHistory: SerializedTrip[] = (historyData.history || []).map((doc: any) => ({
+        const serializedHistory: SerializedTrip[] = (historyData.history || []).map((doc) => ({
           _id: typeof doc._id === "string" ? doc._id : doc._id.toString(),
           origin: doc.origin,
           destination: doc.destination,
@@ -130,7 +129,7 @@ export default function HistoryPage() {
           routeGeometry: doc.routeGeometry,
           routeSource: doc.routeSource,
           status: doc.status,
-          quotes: doc.quotes.map((quote: any) => ({ ...quote })),
+          quotes: doc.quotes.map((quote) => ({ ...quote })),
           selectedQuote: doc.selectedQuote ? { ...doc.selectedQuote } : undefined,
           userId: doc.userId,
           createdAt: doc.createdAt instanceof Date ? doc.createdAt.toISOString() : String(doc.createdAt),

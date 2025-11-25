@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
-import connectToDatabase from '@/lib/mongoose';
-import { Trip, ITrip } from '@/models/Trip';
+
+import { getTripsCollection } from '@/lib/mongodb';
+import { TripDbDoc } from '@/models/Trip';
 import { getAllQuotes, estimateDistance } from '@/lib/providers/adapters';
 import { type LatLng } from '@/lib/openrouteservice';
 import { geocodePlace, type GeocodedPlace } from '@/lib/mapbox';
@@ -49,7 +50,7 @@ function getLatLngFromPlace(place?: PlacePayload): LatLng | null {
 
 export async function POST(req: Request) {
   try {
-    await connectToDatabase();
+    const tripsCollection = await getTripsCollection();
     const body: SearchBody = await req.json();
 
     // Validate userId
@@ -151,7 +152,9 @@ export async function POST(req: Request) {
 
     const { quotes } = await getAllQuotes(distanceKm, durationMinutes, resolvedOriginLabel);
 
-    const tripData: Partial<ITrip> = {
+    const createdAt = new Date();
+
+    const tripDoc: TripDbDoc = {
       origin: resolvedOriginLabel,
       destination: resolvedDestinationLabel,
       distanceKm,
@@ -159,10 +162,11 @@ export async function POST(req: Request) {
       quotes,
       status: 'SEARCHED',
       userId: body.userId, // Use userId from request
+      createdAt,
     };
 
     if (originLatLng) {
-      tripData.originLocation = {
+      tripDoc.originLocation = {
         label: resolvedOriginLabel,
         lat: originLatLng.lat,
         lng: originLatLng.lng,
@@ -170,7 +174,7 @@ export async function POST(req: Request) {
     }
 
     if (destinationLatLng) {
-      tripData.destinationLocation = {
+      tripDoc.destinationLocation = {
         label: resolvedDestinationLabel,
         lat: destinationLatLng.lat,
         lng: destinationLatLng.lng,
@@ -178,15 +182,15 @@ export async function POST(req: Request) {
     }
 
     if (routeCoordinates?.length) {
-      tripData.routeGeometry = {
+      tripDoc.routeGeometry = {
         coordinates: routeCoordinates,
       };
-      tripData.routeSource = routeSource;
+      tripDoc.routeSource = routeSource;
     }
 
-    const trip = await Trip.create(tripData);
+    const result = await tripsCollection.insertOne(tripDoc);
 
-    return NextResponse.json({ tripId: String(trip._id) });
+    return NextResponse.json({ tripId: String(result.insertedId) });
   } catch (error) {
     console.error('Error searching trips:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });

@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import type { RideStatus } from "./ride-lifecycle"
 
 type RouteCoordinate = { lat: number; lng: number }
@@ -236,6 +236,7 @@ export function useDriverAnimation({
         animationRef.current = null
       }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, hasValidRoute, enabled, phaseConfig, speedMultiplier])
 
   // Calculate driver position from progress

@@ -11,7 +11,7 @@ import { Loader2, Clock, Car, Bike } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface TripViewProps {
-  trip: ITrip & { _id: string }; // Ensure _id is string for client
+  trip: ITrip;
 }
 
 export default function TripView({ trip }: TripViewProps) {

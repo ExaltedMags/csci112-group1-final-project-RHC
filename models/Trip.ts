@@ -1,86 +1,72 @@
-import mongoose, { Schema, Document, Model } from 'mongoose';
+import type { ObjectId } from 'mongodb';
+
+export type TripStatus = 'SEARCHED' | 'BOOKED' | 'COMPLETED';
+export type RouteSource = 'ORS' | 'MAPBOX';
+export type VehicleCategory = '4-wheel' | '2-wheel';
 
 export interface IQuote {
   provider: string;
-  fare: number; // Store as single number for simplicity in selection, or min/max
+  /**
+   * Optional cached fare average. Most UI flows rely on min/max fares.
+   */
+  fare?: number;
   minFare: number;
   maxFare: number;
-  eta: number; // minutes
+  eta: number;
   surgeMultiplier: number;
   isSurge: boolean;
-  category: '4-wheel' | '2-wheel';
+  category: VehicleCategory;
 }
 
-export interface ITrip extends Document {
+export interface TripCoordinate {
+  lat: number;
+  lng: number;
+}
+
+export interface TripLocation extends TripCoordinate {
+  label: string;
+}
+
+export interface TripRouteGeometry {
+  coordinates: TripCoordinate[];
+}
+
+export interface TripCore {
   origin: string;
   destination: string;
   distanceKm: number;
   durationMinutes: number;
-  originLocation?: {
-    label: string;
-    lat: number;
-    lng: number;
-  };
-  destinationLocation?: {
-    label: string;
-    lat: number;
-    lng: number;
-  };
-  routeGeometry?: {
-    coordinates: {
-      lat: number;
-      lng: number;
-    }[];
-  };
-  routeSource?: 'ORS' | 'MAPBOX';
-  status: 'SEARCHED' | 'BOOKED' | 'COMPLETED';
+  originLocation?: TripLocation;
+  destinationLocation?: TripLocation;
+  routeGeometry?: TripRouteGeometry;
+  routeSource?: RouteSource;
+  status: TripStatus;
   quotes: IQuote[];
   selectedQuote?: IQuote;
-  userId: string; // User ID (MongoDB ObjectId as string)
-  createdAt: Date;
+  userId: string;
 }
 
-const QuoteSchema = new Schema<IQuote>({
-  provider: { type: String, required: true },
-  minFare: { type: Number, required: true },
-  maxFare: { type: Number, required: true },
-  eta: { type: Number, required: true },
-  surgeMultiplier: { type: Number, default: 1.0 },
-  isSurge: { type: Boolean, default: false },
-  category: { type: String, enum: ['4-wheel', '2-wheel'], required: true }
-}, { _id: false });
+/**
+ * Document shape stored in MongoDB. `_id` is optional pre-insert so we can
+ * share the type with `insertOne`.
+ */
+export interface TripDbDoc extends TripCore {
+  _id?: ObjectId;
+  createdAt: Date;
+  updatedAt?: Date;
+}
 
-const CoordinateSchema = new Schema({
-  lat: { type: Number, required: true },
-  lng: { type: Number, required: true }
-}, { _id: false });
+/**
+ * Serialized shape passed to client code.
+ */
+export type TripDTO = TripCore & {
+  _id: string;
+  createdAt: string;
+  updatedAt?: string;
+};
 
-const TripSchema = new Schema<ITrip>({
-  origin: { type: String, required: true },
-  destination: { type: String, required: true },
-  distanceKm: { type: Number, required: true },
-  durationMinutes: { type: Number, required: true },
-  originLocation: {
-    label: { type: String },
-    lat: { type: Number },
-    lng: { type: Number }
-  },
-  destinationLocation: {
-    label: { type: String },
-    lat: { type: Number },
-    lng: { type: Number }
-  },
-  routeGeometry: {
-    coordinates: { type: [CoordinateSchema], default: undefined }
-  },
-  routeSource: { type: String, enum: ['ORS', 'MAPBOX'], default: undefined },
-  status: { type: String, enum: ['SEARCHED', 'BOOKED', 'COMPLETED'], default: 'SEARCHED' },
-  quotes: [QuoteSchema],
-  selectedQuote: QuoteSchema,
-  userId: { type: String, required: true },
-  createdAt: { type: Date, default: Date.now }
-});
-
-// Prevent model recompilation error in Next.js
-export const Trip: Model<ITrip> = mongoose.models.Trip || mongoose.model<ITrip>('Trip', TripSchema);
+/**
+ * Alias retained for historical imports. Represents client-facing trips.
+ */
+export type ITrip = TripDTO;
 

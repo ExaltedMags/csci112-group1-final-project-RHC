@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
-import connectToDatabase from '@/lib/mongoose';
-import { User } from '@/models/User';
+import { ObjectId } from 'mongodb';
+
+import { getUsersCollection } from '@/lib/mongodb';
 
 export async function POST(req: Request) {
   try {
-    await connectToDatabase();
+    const usersCollection = await getUsersCollection();
     const { email, name } = await req.json();
 
     if (!email || typeof email !== 'string' || email.trim() === '') {
@@ -18,26 +19,38 @@ export async function POST(req: Request) {
     const normalizedEmail = email.trim().toLowerCase();
 
     // Find or create user by email
-    let user = await User.findOne({ email: normalizedEmail });
+    let user = await usersCollection.findOne({ email: normalizedEmail });
 
     if (!user) {
       // Create new user
-      user = await User.create({
+      const now = new Date();
+      const insertDoc = {
         email: normalizedEmail,
         name: name?.trim() || undefined,
         history: [],
-      });
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      const result = await usersCollection.insertOne(insertDoc);
+      user = { ...insertDoc, _id: result.insertedId };
     } else {
       // Update name if provided and different
       if (name?.trim() && name.trim() !== user.name) {
-        user.name = name.trim();
-        await user.save();
+        const trimmedName = name.trim();
+        const updatedAt = new Date();
+        await usersCollection.updateOne(
+          { _id: user._id },
+          { $set: { name: trimmedName, updatedAt } }
+        );
+        user.name = trimmedName;
+        user.updatedAt = updatedAt;
       }
     }
 
     // Return user info (userId is the MongoDB _id as string)
     return NextResponse.json({
-      userId: user._id.toString(),
+      userId: user._id instanceof ObjectId ? user._id.toString() : String(user._id),
       email: user.email,
       name: user.name,
     });

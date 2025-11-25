@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import connectToDatabase from '@/lib/mongoose';
-import { Trip } from '@/models/Trip';
-import { ReferralLog } from '@/models/ReferralLog';
+import { ObjectId } from 'mongodb';
+
+import { getTripsCollection, getReferralLogsCollection } from '@/lib/mongodb';
 import { PROVIDER_LABELS } from '@/lib/providers/adapters';
 
 /**
@@ -35,7 +35,12 @@ export async function POST(
 ) {
   const params = await props.params;
   try {
-    await connectToDatabase();
+    if (!ObjectId.isValid(params.id)) {
+      return NextResponse.json({ error: 'Invalid trip id' }, { status: 400 });
+    }
+
+    const tripsCollection = await getTripsCollection();
+    const referralLogsCollection = await getReferralLogsCollection();
     const { userId } = await req.json();
     
     // Validate userId
@@ -50,9 +55,13 @@ export async function POST(
       }
     }
     
-    const trip = await Trip.findById(params.id);
+    const trip = await tripsCollection.findOne({ _id: new ObjectId(params.id) });
     if (!trip) {
       return NextResponse.json({ error: 'Trip not found' }, { status: 404 });
+    }
+
+    if (!trip._id) {
+      return NextResponse.json({ error: 'Trip is missing identifier' }, { status: 500 });
     }
 
     // Verify trip belongs to user (unless dev fallback)
@@ -83,7 +92,8 @@ export async function POST(
 
     // Create ReferralLog
     // Note: For demo-user-123, we still create ReferralLog
-    await ReferralLog.create({
+    const now = new Date();
+    await referralLogsCollection.insertOne({
       userId: finalUserId,
       tripId: trip._id,
       providerCode: selectedQuote.provider,
@@ -91,6 +101,8 @@ export async function POST(
       bookedMinFare: selectedQuote.minFare,
       bookedMaxFare: selectedQuote.maxFare,
       deviceType: deviceType,
+      createdAt: now,
+      updatedAt: now,
     });
 
     // Note: User History is updated at selection time (in /api/trips/[id]/select/route.ts)

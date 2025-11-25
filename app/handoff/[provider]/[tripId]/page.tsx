@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
-import connectToDatabase from "@/lib/mongoose";
-import { Trip } from "@/models/Trip";
+import { ObjectId } from "mongodb";
+
+import { getTripsCollection } from "@/lib/mongodb";
+import { serializeTrip } from "@/lib/serializers";
 import { getBestRoute } from "@/lib/route-planner";
 import HandoffView from "./handoff-view";
 
@@ -13,12 +15,18 @@ interface PageProps {
 
 export default async function HandoffPage(props: PageProps) {
   const params = await props.params;
-  await connectToDatabase();
+  if (!ObjectId.isValid(params.tripId)) {
+    notFound();
+  }
 
-  // Fetch full document (not lean) to allow on-read lazy repair
-  const doc = await Trip.findById(params.tripId);
+  const tripsCollection = await getTripsCollection();
+  let doc = await tripsCollection.findOne({ _id: new ObjectId(params.tripId) });
 
   if (!doc) {
+    notFound();
+  }
+
+  if (!doc._id) {
     notFound();
   }
 
@@ -49,18 +57,30 @@ export default async function HandoffPage(props: PageProps) {
       );
 
       if (bestRoute) {
-        doc.routeGeometry = { coordinates: bestRoute.geometry };
-        doc.routeSource = bestRoute.source;
+        const updates: Record<string, unknown> = {
+          routeGeometry: { coordinates: bestRoute.geometry },
+          routeSource: bestRoute.source,
+          updatedAt: new Date(),
+        };
 
-        // Optionally update distance/duration only if missing/invalid
         if (!(typeof doc.distanceKm === "number" && doc.distanceKm > 0)) {
-          doc.distanceKm = bestRoute.distanceKm;
+          updates.distanceKm = bestRoute.distanceKm;
         }
         if (!(typeof doc.durationMinutes === "number" && doc.durationMinutes > 0)) {
-          doc.durationMinutes = bestRoute.durationMinutes;
+          updates.durationMinutes = bestRoute.durationMinutes;
         }
 
-        await doc.save();
+        const updatedDoc = await tripsCollection.findOneAndUpdate(
+          { _id: doc._id },
+          { $set: updates },
+          { returnDocument: "after" }
+        );
+
+        if (updatedDoc) {
+          doc = updatedDoc;
+        } else {
+          doc = { ...doc, ...updates };
+        }
 
         if (isDev) {
           console.log("[lazy-route-repair] Success, geometry points:", bestRoute.geometry.length);
@@ -77,7 +97,7 @@ export default async function HandoffPage(props: PageProps) {
   }
 
   // Pass serialized data to client component
-  const serializedTrip = JSON.parse(JSON.stringify(doc));
+  const serializedTrip = serializeTrip(doc);
   const orsEnabled = Boolean(process.env.ORS_API_KEY);
 
   return (

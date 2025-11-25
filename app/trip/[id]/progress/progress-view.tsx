@@ -18,7 +18,6 @@ import { RideStepIndicator, RideProgressBar } from "@/components/ride-step-indic
 import { DriverCard, DriverCardSkeleton } from "@/components/driver-card"
 import { RideFeedbackModal } from "@/components/ride-feedback-modal"
 import { Button } from "@/components/ui/button"
-import { cn } from "@/lib/utils"
 import {
   ArrowLeft,
   Navigation2,
@@ -42,7 +41,7 @@ const RideMap = dynamic(
 )
 
 interface TripProgressViewProps {
-  trip: ITrip & { _id: string }
+  trip: ITrip
 }
 
 export default function TripProgressView({ trip }: TripProgressViewProps) {
@@ -65,7 +64,7 @@ export default function TripProgressView({ trip }: TripProgressViewProps) {
   const showDriverCard = currentStepIndex >= 1 // Show after BOOKED
 
   // Driver animation along route
-  const { driverPosition, progress: driverProgress, isAnimating } = useDriverAnimation({
+  const { driverPosition, progress: driverProgress } = useDriverAnimation({
     routeCoordinates: trip.routeGeometry?.coordinates ?? null,
     status: currentStep.status,
     enabled: currentStepIndex >= 1, // Only animate after driver is assigned
@@ -94,6 +93,7 @@ export default function TripProgressView({ trip }: TripProgressViewProps) {
   // Generate mock driver when assigned
   useEffect(() => {
     if (currentStepIndex === 1 && !driver) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setDriver(generateMockDriver(isMC))
     }
   }, [currentStepIndex, driver, isMC])

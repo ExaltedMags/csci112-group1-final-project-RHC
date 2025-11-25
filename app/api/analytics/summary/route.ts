@@ -1,14 +1,14 @@
 import { NextResponse } from 'next/server';
-import connectToDatabase from '@/lib/mongoose';
-import { Trip } from '@/models/Trip';
-import { ReferralLog } from '@/models/ReferralLog';
+
+import { getTripsCollection, getReferralLogsCollection } from '@/lib/mongodb';
 import { PROVIDER_LABELS } from '@/lib/providers/adapters';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request) {
   try {
-    await connectToDatabase();
+    const tripsCollection = await getTripsCollection();
+    const referralLogsCollection = await getReferralLogsCollection();
 
     // Get userId from query params
     const { searchParams } = new URL(req.url);
@@ -26,7 +26,10 @@ export async function GET(req: Request) {
     }
 
     // 1. Existing Aggregation: Provider stats (count, avgFare)
-    const providerStats = await Trip.aggregate([
+    // Matches revised proposal query #7B (Top Routes using BOOKED trips)
+    // NOTE: In this prototype, BOOKED trips stand in for COMPLETED because we do not have real provider callbacks.
+    const providerStats = await tripsCollection
+      .aggregate([
       { $match: { status: 'BOOKED', userId } },
       {
         $group: {
@@ -36,7 +39,8 @@ export async function GET(req: Request) {
         },
       },
       { $sort: { count: -1 } }
-    ]);
+      ])
+      .toArray();
 
     const totalTrips = providerStats.reduce((acc, curr) => acc + curr.count, 0);
     
@@ -50,7 +54,9 @@ export async function GET(req: Request) {
     const favoriteProvider = perProvider.length > 0 ? perProvider[0].provider : null;
 
     // 2. New Analytics: Savings vs Cheapest Option
-    const savingsStats = await Trip.aggregate([
+    // NOTE: In this prototype, BOOKED trips stand in for COMPLETED because we do not have real provider callbacks.
+    const savingsStats = await tripsCollection
+      .aggregate([
       { 
         $match: { 
           status: 'BOOKED', 
@@ -81,7 +87,8 @@ export async function GET(req: Request) {
           totalOverpay: { $sum: "$overpay" }
         }
       }
-    ]);
+    ])
+      .toArray();
 
     const savingsData = savingsStats.length > 0 ? savingsStats[0] : { totalTrips: 0, tripsWithOverpay: 0, totalOverpay: 0 };
     const avgOverpayPerTrip = savingsData.totalTrips > 0 
@@ -96,7 +103,8 @@ export async function GET(req: Request) {
     };
 
     // 3. Referral Analytics (by provider)
-    const referralStats = await ReferralLog.aggregate([
+    const referralStats = await referralLogsCollection
+      .aggregate([
        { $match: { userId } },
        {
          $group: {
@@ -105,7 +113,8 @@ export async function GET(req: Request) {
          }
        },
        { $sort: { count: -1 } }
-    ]);
+    ])
+      .toArray();
 
     const referralsPerProvider = referralStats.map(item => ({
       providerCode: item._id,
@@ -113,7 +122,8 @@ export async function GET(req: Request) {
     }));
 
     // 4. Optional: Referral Analytics by Device Type
-    const referralStatsByDevice = await ReferralLog.aggregate([
+    const referralStatsByDevice = await referralLogsCollection
+      .aggregate([
        { $match: { userId } },
        {
          $group: {
@@ -122,7 +132,8 @@ export async function GET(req: Request) {
          }
        },
        { $sort: { count: -1 } }
-    ]);
+    ])
+      .toArray();
 
     const referralsByDeviceType = referralStatsByDevice.map(item => ({
       deviceType: item._id,
@@ -130,7 +141,8 @@ export async function GET(req: Request) {
     }));
 
     // 5. Optional: Referral Analytics by Provider + Device Type
-    const referralStatsByProviderAndDevice = await ReferralLog.aggregate([
+    const referralStatsByProviderAndDevice = await referralLogsCollection
+      .aggregate([
        { $match: { userId } },
        {
          $group: {
@@ -142,7 +154,8 @@ export async function GET(req: Request) {
          }
        },
        { $sort: { count: -1 } }
-    ]);
+    ])
+      .toArray();
 
     const referralsByProviderAndDevice = referralStatsByProviderAndDevice.map(item => ({
       providerCode: item._id.providerCode,

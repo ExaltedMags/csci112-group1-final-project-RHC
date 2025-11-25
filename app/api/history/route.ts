@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
-import connectToDatabase from '@/lib/mongoose';
-import { Trip } from '@/models/Trip';
+
+import { getTripsCollection } from '@/lib/mongodb';
+import { serializeTrips } from '@/lib/serializers';
 
 export async function GET(req: Request) {
   try {
-    await connectToDatabase();
+    const tripsCollection = await getTripsCollection();
 
     // Get userId from query params
     const { searchParams } = new URL(req.url);
@@ -22,13 +23,17 @@ export async function GET(req: Request) {
     }
 
     // 1. Fetch recent history
-    const history = await Trip.find({ userId })
+    const historyDocs = await tripsCollection
+      .find({ userId })
       .sort({ createdAt: -1 })
-      .limit(20);
+      .limit(20)
+      .toArray();
 
     // 2. Aggregate analytics (simple example)
+    // Matches revised proposal query #7B (Top Routes using BOOKED trips)
+    // NOTE: In this prototype, BOOKED trips stand in for COMPLETED because we do not have real provider callbacks.
     // Count booked trips by provider
-    const aggregation = await Trip.aggregate([
+    const aggregation = await tripsCollection.aggregate([
       { $match: { status: 'BOOKED', userId } },
       {
         $group: {
@@ -37,9 +42,9 @@ export async function GET(req: Request) {
           avgFare: { $avg: "$selectedQuote.minFare" }
         }
       }
-    ]);
+    ]).toArray();
 
-    return NextResponse.json({ history, analytics: aggregation });
+    return NextResponse.json({ history: serializeTrips(historyDocs), analytics: aggregation });
   } catch (error) {
     console.error('Error fetching history:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });

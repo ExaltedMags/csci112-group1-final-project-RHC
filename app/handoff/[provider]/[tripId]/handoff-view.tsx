@@ -32,7 +32,7 @@ import { cn } from "@/lib/utils"
 import { getProviderTheme } from "@/lib/provider-theme"
 
 interface HandoffViewProps {
-  trip: ITrip & { _id: string }
+  trip: ITrip
   providerId: string
   orsEnabled: boolean
 }

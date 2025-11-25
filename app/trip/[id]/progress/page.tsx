@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation"
+import { ObjectId } from "mongodb"
 
-import connectToDatabase from "@/lib/mongoose"
-import { Trip, ITrip } from "@/models/Trip"
+import { getTripsCollection } from "@/lib/mongodb"
+import { serializeTrip } from "@/lib/serializers"
 import TripProgressView from "./progress-view"
 
 interface PageProps {
@@ -10,23 +11,18 @@ interface PageProps {
 
 export default async function TripProgressPage(props: PageProps) {
   const params = await props.params
-  await connectToDatabase()
-
-  const trip = await Trip.findById(params.id).lean<ITrip>()
-
-  if (!trip) {
+  if (!ObjectId.isValid(params.id)) {
     notFound()
   }
 
-  // Serialize the trip for client-side consumption
-  // Using type assertion to unknown first to avoid strict type checking
-  // since we're converting from Mongoose document to plain object
-  const serializedTrip = {
-    ...trip,
-    _id: trip._id.toString(),
-    quotes: trip.quotes.map((quote) => ({ ...quote })),
-    createdAt: trip.createdAt?.toISOString?.() ?? new Date().toISOString(),
-  } as unknown as ITrip & { _id: string }
+  const tripsCollection = await getTripsCollection()
+  const trip = await tripsCollection.findOne({ _id: new ObjectId(params.id) })
+
+  if (!trip || !trip._id) {
+    notFound()
+  }
+
+  const serializedTrip = serializeTrip(trip)
 
   return <TripProgressView trip={serializedTrip} />
 }

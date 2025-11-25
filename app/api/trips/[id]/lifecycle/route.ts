@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
+import { ObjectId } from "mongodb"
 
-import connectToDatabase from "@/lib/mongoose"
-import { Trip } from "@/models/Trip"
+import { getTripsCollection } from "@/lib/mongodb"
 import { PROVIDER_LIFECYCLE_STEPS } from "@/lib/provider-lifecycle"
 
 export async function POST(
@@ -11,8 +11,12 @@ export async function POST(
   const params = await props.params
 
   try {
-    await connectToDatabase()
-    const trip = await Trip.findById(params.id)
+    if (!ObjectId.isValid(params.id)) {
+      return NextResponse.json({ error: "Invalid trip id" }, { status: 400 })
+    }
+
+    const tripsCollection = await getTripsCollection()
+    const trip = await tripsCollection.findOne({ _id: new ObjectId(params.id) })
 
     if (!trip) {
       return NextResponse.json({ error: "Trip not found" }, { status: 404 })
