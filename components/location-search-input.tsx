@@ -27,7 +27,7 @@ type LocationSearchInputProps = {
   onChange: (place: PlaceSuggestion | null) => void;
   placeholder?: string;
   onFocus?: () => void;
-  iconRef?: RefObject<HTMLDivElement>;
+  iconRef?: RefObject<HTMLDivElement | null>;
 };
 
 const FALLBACK_ICON = (
