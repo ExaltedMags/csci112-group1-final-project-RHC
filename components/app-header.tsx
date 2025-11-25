@@ -83,7 +83,7 @@ export function AppHeader() {
 
       {/* Mobile Header - Compact logo only */}
       <header className="bg-white/95 backdrop-blur-sm sticky top-0 z-50 md:hidden border-b border-border/40">
-        <div className="container mx-auto px-4 h-14 flex items-center justify-between">
+        <div className="container mx-auto px-4 h-14 flex items-center justify-center">
           {/* Compact Logo */}
           <Link 
             href="/" 
@@ -99,8 +99,6 @@ export function AppHeader() {
               PH Ride Compare
             </span>
           </Link>
-
-          <UserMenu />
         </div>
       </header>
 
@@ -142,6 +140,9 @@ export function AppHeader() {
                 </Link>
               )
             })}
+            
+            {/* Profile in bottom nav */}
+            <UserMenu isMobileNav />
           </div>
         </nav>
       )}
