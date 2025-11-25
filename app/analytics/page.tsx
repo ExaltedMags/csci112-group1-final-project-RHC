@@ -104,7 +104,8 @@ function isEmptyData(data: GlobalAnalyticsResponse): boolean {
   return (
     data.surgeFrequencyByProvider.length === 0 &&
     data.surgePatternsByTimeOfDay.length === 0 &&
-    data.surgePatternsByLocation.length === 0
+    data.surgePatternsByLocation.length === 0 &&
+    (!data.topRoutes || data.topRoutes.length === 0)
   )
 }
 

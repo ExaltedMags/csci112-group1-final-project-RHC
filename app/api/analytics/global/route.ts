@@ -26,6 +26,15 @@ type LocationInsight = {
   averageSurgeMultiplier: number;
 };
 
+type RouteAnalytics = {
+  origin: string;
+  destination: string;
+  tripCount: number;
+  avgFare: number;
+  avgDistance: number;
+  mostPopularProvider: string;
+};
+
 function percentage(part: number, whole: number): number {
   if (!whole) return 0;
   return parseFloat(((part / whole) * 100).toFixed(1));
@@ -214,10 +223,105 @@ export async function GET() {
       averageSurgeMultiplier: round(item.avgSurgeMultiplier ?? 1, 2),
     }));
 
+    // Top routes by volume aggregation
+    const topRoutesAggregation = await tripsCollection
+      .aggregate([
+        {
+          $match: {
+            status: 'BOOKED',
+            'originLocation.label': { $exists: true },
+            'destinationLocation.label': { $exists: true },
+          },
+        },
+        {
+          $group: {
+            _id: {
+              origin: '$originLocation.label',
+              destination: '$destinationLocation.label',
+            },
+            tripCount: { $sum: 1 },
+            avgFare: { $avg: '$selectedQuote.minFare' },
+            avgDistance: { $avg: '$distanceKm' },
+            providers: { $push: '$selectedQuote.provider' },
+          },
+        },
+        { $sort: { tripCount: -1 } },
+        { $limit: 10 },
+        {
+          $addFields: {
+            // Calculate the most popular provider by finding the mode
+            mostPopularProvider: {
+              $let: {
+                vars: {
+                  providerCounts: {
+                    $reduce: {
+                      input: '$providers',
+                      initialValue: [],
+                      in: {
+                        $let: {
+                          vars: {
+                            existing: {
+                              $filter: {
+                                input: '$$value',
+                                cond: { $eq: ['$$this.provider', '$$this'] },
+                              },
+                            },
+                          },
+                          in: {
+                            $cond: {
+                              if: { $gt: [{ $size: '$$existing' }, 0] },
+                              then: '$$value',
+                              else: { $concatArrays: ['$$value', [{ provider: '$$this', count: 1 }]] },
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+                in: { $arrayElemAt: ['$providers', 0] },
+              },
+            },
+          },
+        },
+      ])
+      .toArray();
+
+    // Post-process to calculate the actual most popular provider
+    const topRoutes: RouteAnalytics[] = topRoutesAggregation.map((item) => {
+      // Count provider occurrences
+      const providerCounts: Record<string, number> = {};
+      const providers = item.providers as string[];
+      for (const provider of providers) {
+        if (provider) {
+          providerCounts[provider] = (providerCounts[provider] || 0) + 1;
+        }
+      }
+      // Find the most popular provider
+      let mostPopularProvider = 'Unknown';
+      let maxCount = 0;
+      for (const [provider, count] of Object.entries(providerCounts)) {
+        if (count > maxCount) {
+          maxCount = count;
+          mostPopularProvider = provider;
+        }
+      }
+
+      return {
+        origin: item._id?.origin ?? 'Unknown',
+        destination: item._id?.destination ?? 'Unknown',
+        tripCount: item.tripCount ?? 0,
+        avgFare: round(item.avgFare ?? 0, 0),
+        avgDistance: round(item.avgDistance ?? 0, 1),
+        mostPopularProvider,
+      };
+    });
+
     return NextResponse.json({
       surgeFrequencyByProvider,
       surgePatternsByTimeOfDay,
       surgePatternsByLocation,
+      topRoutes,
     });
   } catch (error) {
     console.error('[analytics/global] Failed to compute surge analytics', error);

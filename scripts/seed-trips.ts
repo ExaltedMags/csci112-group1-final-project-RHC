@@ -2,9 +2,10 @@ import { config } from 'dotenv';
 import { resolve } from 'path';
 import { MongoClient } from 'mongodb';
 
-import { getAngkasQuote, getGrabPHQuote, getJoyRideQuote } from '../lib/providers/adapters';
+import { getAngkasQuote, getGrabPHQuote, getJoyRideQuote, PROVIDER_LABELS } from '../lib/providers/adapters';
 import type { ProviderQuote } from '../lib/providers/adapters';
 import type { TripDbDoc } from '../models/Trip';
+import type { IReferralLog, DeviceType } from '../models/ReferralLog';
 
 // Load .env.local file
 config({ path: resolve(process.cwd(), '.env.local') });
@@ -158,6 +159,16 @@ const LOYALTY_PROVIDER_WEIGHTS = PROVIDER_DEFINITIONS.map((definition) => ({
 
 const USER_IDS = ['seed-user-01', 'seed-user-02', 'seed-user-03', 'seed-user-04', 'seed-user-05', 'seed-user-06'];
 
+// Referral log configuration
+const REFERRAL_CONVERSION_MIN = 0.6; // 60%
+const REFERRAL_CONVERSION_MAX = 0.75; // 75%
+
+const DEVICE_TYPE_WEIGHTS: { value: DeviceType; weight: number }[] = [
+  { value: 'mobile', weight: 7.25 }, // 72.5% (between 70-75%)
+  { value: 'desktop', weight: 2.25 }, // 22.5% (between 20-25%)
+  { value: 'tablet', weight: 0.5 }, // 5% (between 5-10%)
+];
+
 function pickRandom<T>(items: T[]): T {
   return items[Math.floor(Math.random() * items.length)];
 }
@@ -183,6 +194,49 @@ function weightedPick<T>(items: { value: T; weight: number }[]): T {
 function randomizeAround(base: number, varianceRatio: number): number {
   const variance = 1 - varianceRatio + Math.random() * varianceRatio * 2;
   return base * variance;
+}
+
+function pickDeviceType(): DeviceType {
+  return weightedPick(DEVICE_TYPE_WEIGHTS);
+}
+
+function getProviderName(providerCode: string): string {
+  return PROVIDER_LABELS[providerCode] || providerCode;
+}
+
+function shouldCreateReferral(): boolean {
+  const conversionRate = REFERRAL_CONVERSION_MIN + Math.random() * (REFERRAL_CONVERSION_MAX - REFERRAL_CONVERSION_MIN);
+  return Math.random() < conversionRate;
+}
+
+function createReferralLog(
+  trip: TripDbDoc & { _id: NonNullable<TripDbDoc['_id']> },
+  tripCreatedAt: Date
+): IReferralLog {
+  if (!trip.selectedQuote) {
+    throw new Error('[seed-trips] Trip must have selectedQuote to create referral log');
+  }
+
+  const providerCode = trip.selectedQuote.provider;
+  const providerName = getProviderName(providerCode);
+  const deviceType = pickDeviceType();
+  
+  // Referral timestamp is same as trip or slightly after (1-5 minutes)
+  const referralTimestamp = new Date(tripCreatedAt);
+  const minutesAfter = Math.floor(Math.random() * 5) + 1;
+  referralTimestamp.setMinutes(referralTimestamp.getMinutes() + minutesAfter);
+
+  return {
+    userId: trip.userId,
+    tripId: trip._id,
+    providerCode,
+    providerName,
+    bookedMinFare: trip.selectedQuote.minFare,
+    bookedMaxFare: trip.selectedQuote.maxFare,
+    deviceType,
+    createdAt: referralTimestamp,
+    updatedAt: referralTimestamp,
+  };
 }
 
 function pickTimeBucket(): TimeBucket {
@@ -368,6 +422,44 @@ async function main() {
     console.log(`[seed-trips] Inserting ${trips.length} trips...`);
     const result = await tripsCollection.insertMany(trips);
     console.log(`[seed-trips] Seeded ${result.insertedCount} trips successfully.`);
+
+    // Generate referral logs for a realistic percentage of trips
+    console.log(`[seed-trips] Seeding referral logs...`);
+    const referralLogsCollection = db.collection<IReferralLog>('referral_logs');
+    const referralLogs: IReferralLog[] = [];
+    
+    // Fetch inserted trips with their _ids
+    const insertedTripIds = Object.values(result.insertedIds);
+    const insertedTrips = await tripsCollection
+      .find({ _id: { $in: insertedTripIds } })
+      .toArray();
+
+    let referralCount = 0;
+    for (const trip of insertedTrips) {
+      if (shouldCreateReferral() && trip.selectedQuote) {
+        try {
+          const referralLog = createReferralLog(trip as TripDbDoc & { _id: NonNullable<TripDbDoc['_id']> }, trip.createdAt);
+          referralLogs.push(referralLog);
+          referralCount += 1;
+          
+          if (referralCount % 10 === 0) {
+            console.log(`[seed-trips] Created ${referralCount}/${insertedTrips.length} referral logs...`);
+          }
+        } catch (error) {
+          console.warn(`[seed-trips] Skipping referral log for trip ${trip._id}:`, error);
+        }
+      }
+    }
+
+    if (referralLogs.length > 0) {
+      const referralResult = await referralLogsCollection.insertMany(referralLogs);
+      const conversionRate = ((referralLogs.length / insertedTrips.length) * 100).toFixed(1);
+      console.log(
+        `[seed-trips] Successfully created ${referralResult.insertedCount} referral logs (${conversionRate}% conversion rate)`
+      );
+    } else {
+      console.log(`[seed-trips] No referral logs created (0% conversion rate)`);
+    }
   } finally {
     await client.close();
   }

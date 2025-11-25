@@ -25,10 +25,20 @@ export interface LocationInsight {
   averageSurgeMultiplier: number;
 }
 
+export interface RouteAnalytics {
+  origin: string;
+  destination: string;
+  tripCount: number;
+  avgFare: number;
+  avgDistance: number;
+  mostPopularProvider: string;
+}
+
 export interface GlobalAnalyticsResponse {
   surgeFrequencyByProvider: ProviderSurgeInsight[];
   surgePatternsByTimeOfDay: TimeSlotInsight[];
   surgePatternsByLocation: LocationInsight[];
+  topRoutes: RouteAnalytics[];
 }
 
 // Extended provider stats for display (calculated on frontend)
