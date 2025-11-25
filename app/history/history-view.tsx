@@ -84,112 +84,112 @@ export default function HistoryView({ history, analytics, savings, referrals }: 
   const formatProviderName = (providerId: string) => PROVIDER_LABELS[providerId] ?? providerId
 
   return (
-    <div className="space-y-8 max-w-6xl mx-auto">
+    <div className="space-y-5 sm:space-y-8 max-w-6xl mx-auto">
       {/* Header */}
-      <div className="flex flex-col gap-2 animate-fade-in-up">
-        <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-warm-gray">
+      <div className="flex flex-col gap-1 sm:gap-2 animate-fade-in-up">
+        <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-tight text-warm-gray">
           Your Trip History
         </h1>
-        <p className="text-warm-gray/60">
+        <p className="text-warm-gray/60 text-sm sm:text-base">
           Track your rides and discover savings opportunities
         </p>
       </div>
 
       {/* Analytics Summary */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-3 sm:gap-4 grid-cols-2 sm:grid-cols-2 lg:grid-cols-5">
         {/* Total Trips */}
         <Card className="animate-fade-in-up delay-100 hover:shadow-lg transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-warm-gray/70">Total Trips</CardTitle>
-            <div className="p-2 rounded-lg bg-coral/10">
-              <BarChart3 className="h-4 w-4 text-coral" />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2 px-3 sm:px-6 pt-3 sm:pt-6">
+            <CardTitle className="text-xs sm:text-sm font-medium text-warm-gray/70">Total Trips</CardTitle>
+            <div className="p-1.5 sm:p-2 rounded-lg bg-coral/10">
+              <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4 text-coral" />
             </div>
           </CardHeader>
-          <CardContent>
-            <div className="stat-number text-3xl text-coral">{totalTrips}</div>
-            <p className="text-xs text-warm-gray/50 mt-1">
-              Lifetime rides compared
+          <CardContent className="px-3 sm:px-6 pb-3 sm:pb-6">
+            <div className="stat-number text-2xl sm:text-3xl text-coral">{totalTrips}</div>
+            <p className="text-[10px] sm:text-xs text-warm-gray/50 mt-0.5 sm:mt-1">
+              Lifetime rides
             </p>
           </CardContent>
         </Card>
 
         {/* Favorite Provider */}
         <Card className="animate-fade-in-up delay-150 hover:shadow-lg transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-warm-gray/70">Favorite Provider</CardTitle>
-            <div className="p-2 rounded-lg bg-teal/10">
-              <Car className="h-4 w-4 text-teal" />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2 px-3 sm:px-6 pt-3 sm:pt-6">
+            <CardTitle className="text-xs sm:text-sm font-medium text-warm-gray/70">Top Provider</CardTitle>
+            <div className="p-1.5 sm:p-2 rounded-lg bg-teal/10">
+              <Car className="h-3 w-3 sm:h-4 sm:w-4 text-teal" />
             </div>
           </CardHeader>
-          <CardContent>
-            <div className="stat-number text-3xl text-warm-gray">
+          <CardContent className="px-3 sm:px-6 pb-3 sm:pb-6">
+            <div className="stat-number text-xl sm:text-3xl text-warm-gray truncate">
               {topProvider ? topProvider._id : "N/A"}
             </div>
-            <p className="text-xs text-warm-gray/50 mt-1">
-              {topProvider ? `${topProvider.count} rides booked` : "No data yet"}
+            <p className="text-[10px] sm:text-xs text-warm-gray/50 mt-0.5 sm:mt-1 truncate">
+              {topProvider ? `${topProvider.count} rides` : "No data yet"}
             </p>
           </CardContent>
         </Card>
 
         {/* Average Fare */}
         <Card className="animate-fade-in-up delay-200 hover:shadow-lg transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-warm-gray/70">Avg Fare</CardTitle>
-            <div className="p-2 rounded-lg bg-golden/10">
-              <TrendingUp className="h-4 w-4 text-golden" />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2 px-3 sm:px-6 pt-3 sm:pt-6">
+            <CardTitle className="text-xs sm:text-sm font-medium text-warm-gray/70">Avg Fare</CardTitle>
+            <div className="p-1.5 sm:p-2 rounded-lg bg-golden/10">
+              <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 text-golden" />
             </div>
           </CardHeader>
-          <CardContent>
-            <div className="stat-number text-3xl text-warm-gray">
+          <CardContent className="px-3 sm:px-6 pb-3 sm:pb-6">
+            <div className="stat-number text-2xl sm:text-3xl text-warm-gray">
                ₱{analytics.length > 0 ? Math.round(analytics.reduce((acc, c) => acc + c.avgFare, 0) / analytics.length) : 0}
             </div>
-            <p className="text-xs text-warm-gray/50 mt-1">
-              Per booked trip
+            <p className="text-[10px] sm:text-xs text-warm-gray/50 mt-0.5 sm:mt-1">
+              Per trip
             </p>
           </CardContent>
         </Card>
         
         {/* Savings Card */}
         <Card className="animate-fade-in-up delay-250 hover:shadow-lg transition-shadow bg-gradient-to-br from-emerald-50 to-teal-50 border-emerald-200/50">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-emerald-700">Savings Found</CardTitle>
-            <div className="p-2 rounded-lg bg-emerald-500/10">
-              <PiggyBank className="h-4 w-4 text-emerald-600" />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2 px-3 sm:px-6 pt-3 sm:pt-6">
+            <CardTitle className="text-xs sm:text-sm font-medium text-emerald-700">Savings</CardTitle>
+            <div className="p-1.5 sm:p-2 rounded-lg bg-emerald-500/10">
+              <PiggyBank className="h-3 w-3 sm:h-4 sm:w-4 text-emerald-600" />
             </div>
           </CardHeader>
-          <CardContent>
-            <div className="stat-number text-3xl text-emerald-600">₱{savings.totalOverpay}</div>
-            <p className="text-xs text-emerald-600/70 mt-1">
-              By comparing fares
+          <CardContent className="px-3 sm:px-6 pb-3 sm:pb-6">
+            <div className="stat-number text-2xl sm:text-3xl text-emerald-600">₱{savings.totalOverpay}</div>
+            <p className="text-[10px] sm:text-xs text-emerald-600/70 mt-0.5 sm:mt-1">
+              Total saved
             </p>
-             <div className="mt-2 text-xs text-emerald-600/60 border-t border-emerald-200/50 pt-2">
+             <div className="mt-1 sm:mt-2 text-[10px] sm:text-xs text-emerald-600/60 border-t border-emerald-200/50 pt-1 sm:pt-2 hidden sm:block">
                 ~₱{savings.avgOverpayPerTrip} saved per trip
             </div>
           </CardContent>
         </Card>
 
         {/* Referral Clicks Card */}
-        <Card className="animate-fade-in-up delay-300 hover:shadow-lg transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-warm-gray/70">Handoffs</CardTitle>
-            <div className="p-2 rounded-lg bg-indigo-500/10">
-              <ExternalLink className="h-4 w-4 text-indigo-500" />
+        <Card className="animate-fade-in-up delay-300 hover:shadow-lg transition-shadow col-span-2 sm:col-span-1">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2 px-3 sm:px-6 pt-3 sm:pt-6">
+            <CardTitle className="text-xs sm:text-sm font-medium text-warm-gray/70">Handoffs</CardTitle>
+            <div className="p-1.5 sm:p-2 rounded-lg bg-indigo-500/10">
+              <ExternalLink className="h-3 w-3 sm:h-4 sm:w-4 text-indigo-500" />
             </div>
           </CardHeader>
-          <CardContent>
-            <div className="stat-number text-3xl text-warm-gray">{totalReferrals}</div>
-            <p className="text-xs text-warm-gray/50 mt-1">
+          <CardContent className="px-3 sm:px-6 pb-3 sm:pb-6">
+            <div className="stat-number text-2xl sm:text-3xl text-warm-gray">{totalReferrals}</div>
+            <p className="text-[10px] sm:text-xs text-warm-gray/50 mt-0.5 sm:mt-1 truncate">
               {topReferralProvider ? `Top: ${formatProviderName(topReferralProvider.providerCode)}` : "No handoffs yet"}
             </p>
             {referrals.length > 0 && (
-              <div className="mt-2 flex flex-wrap gap-1.5 border-t border-border pt-2">
+              <div className="mt-1 sm:mt-2 flex flex-wrap gap-1 sm:gap-1.5 border-t border-border pt-1 sm:pt-2">
                 {referrals.map(r => {
                   const theme = getProviderTheme(r.providerCode)
                   return (
                     <Badge 
                       key={r.providerCode} 
                       variant="outline" 
-                      className={cn("text-[10px] px-1.5 py-0.5", theme.text, theme.bg)}
+                      className={cn("text-[9px] sm:text-[10px] px-1 sm:px-1.5 py-0.5", theme.text, theme.bg)}
                     >
                       {formatProviderName(r.providerCode)} {r.count}
                     </Badge>
@@ -201,21 +201,83 @@ export default function HistoryView({ history, analytics, savings, referrals }: 
         </Card>
       </div>
 
-      {/* Recent Trips Table */}
+      {/* Recent Trips */}
       <Card className="animate-fade-in-up delay-400">
-        <CardHeader>
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-coral/10">
-              <Clock className="h-5 w-5 text-coral" />
+        <CardHeader className="px-3 sm:px-6">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="p-1.5 sm:p-2 rounded-lg bg-coral/10">
+              <Clock className="h-4 w-4 sm:h-5 sm:w-5 text-coral" />
             </div>
             <div>
-              <CardTitle className="text-xl">Recent Activity</CardTitle>
-              <p className="text-sm text-warm-gray/60 mt-0.5">Your latest trip searches and bookings</p>
+              <CardTitle className="text-base sm:text-xl">Recent Activity</CardTitle>
+              <p className="text-xs sm:text-sm text-warm-gray/60 mt-0.5 hidden sm:block">Your latest trip searches and bookings</p>
             </div>
           </div>
         </CardHeader>
-        <CardContent>
-          <div className="rounded-xl border border-border overflow-hidden">
+        <CardContent className="px-3 sm:px-6">
+          {/* Mobile Card View */}
+          <div className="md:hidden space-y-3">
+            {history.length === 0 ? (
+              <div className="text-center py-8">
+                <div className="flex flex-col items-center gap-2">
+                  <div className="p-3 rounded-full bg-cream">
+                    <MapPin className="h-6 w-6 text-warm-gray/30" />
+                  </div>
+                  <p className="text-warm-gray/60 font-medium text-sm">No trips yet</p>
+                  <p className="text-xs text-warm-gray/40">Start comparing fares to see your history</p>
+                </div>
+              </div>
+            ) : (
+              history.map((trip) => {
+                const theme = trip.selectedQuote ? getProviderTheme(trip.selectedQuote.provider) : null
+                
+                return (
+                  <div 
+                    key={trip._id}
+                    className="rounded-xl border border-border p-3 bg-white hover:shadow-md transition-shadow"
+                  >
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-semibold text-sm text-warm-gray truncate">{trip.destination}</p>
+                        <p className="text-xs text-warm-gray/50 truncate">from {trip.origin}</p>
+                      </div>
+                      <StatusBadge status={trip.status} />
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2">
+                        {trip.selectedQuote ? (
+                          <>
+                            <div className={cn("p-1 rounded-md", theme?.bg ?? "bg-cream")}>
+                              {theme ? (
+                                <ProviderLogo
+                                  theme={theme}
+                                  size={14}
+                                  className="w-3 h-3"
+                                  iconClassName={cn("w-3 h-3", theme.text)}
+                                />
+                              ) : (
+                                <Car className="w-3 h-3 text-warm-gray/40" />
+                              )}
+                            </div>
+                            <span className="font-medium text-warm-gray">{formatProviderName(trip.selectedQuote.provider)}</span>
+                            <span className="font-bold text-warm-gray">₱{trip.selectedQuote.minFare}</span>
+                          </>
+                        ) : (
+                          <span className="text-warm-gray/40">No provider selected</span>
+                        )}
+                      </div>
+                      <span className="text-warm-gray/50">
+                        {formatDistanceToNow(new Date(trip.createdAt), { addSuffix: true })}
+                      </span>
+                    </div>
+                  </div>
+                )
+              })
+            )}
+          </div>
+          
+          {/* Desktop Table View */}
+          <div className="rounded-xl border border-border overflow-hidden hidden md:block">
             <Table>
               <TableHeader>
                 <TableRow className="bg-cream hover:bg-cream">

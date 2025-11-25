@@ -216,30 +216,30 @@ export default function SearchPage() {
 
   return (
     <AuthGuard>
-      <div className="flex flex-col justify-center items-center min-h-[calc(100vh-8rem)] p-4 bg-gradient-hero">
+      <div className="flex flex-col justify-center items-center min-h-[calc(100vh-10rem)] md:min-h-[calc(100vh-8rem)] px-2 sm:p-4 bg-gradient-hero">
         {/* Hero Section */}
-        <div className="text-center mb-8 animate-fade-in-up">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-coral/10 text-coral text-sm font-medium mb-4">
-            <Sparkles className="w-4 h-4" />
+        <div className="text-center mb-4 sm:mb-8 animate-fade-in-up">
+          <div className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-coral/10 text-coral text-xs sm:text-sm font-medium mb-3 sm:mb-4">
+            <Sparkles className="w-3 h-3 sm:w-4 sm:h-4" />
             <span>Compare fares. Save time (and money!)</span>
           </div>
-          <h1 className="text-4xl sm:text-5xl font-extrabold text-warm-gray tracking-tight mb-3">
+          <h1 className="text-2xl sm:text-4xl md:text-5xl font-extrabold text-warm-gray tracking-tight mb-2 sm:mb-3">
             Where to, <span className="text-coral">kabayan</span>?
           </h1>
-          <p className="text-warm-gray/60 text-lg mx-auto whitespace-nowrap">
+          <p className="text-warm-gray/60 text-sm sm:text-lg mx-auto max-w-xs sm:max-w-none">
             Compare ride fares across ride-hailing services in seconds
           </p>
         </div>
 
-        <Card className="w-full max-w-md border-0 shadow-xl shadow-warm-gray/10 bg-white animate-fade-in-up delay-100">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xl font-bold text-warm-gray flex items-center gap-2">
-              <MapPin className="w-5 h-5 text-coral" />
+        <Card className="w-full max-w-md border-0 shadow-xl shadow-warm-gray/10 bg-white animate-fade-in-up delay-100 mx-2 sm:mx-0">
+          <CardHeader className="pb-2 px-4 sm:px-6">
+            <CardTitle className="text-lg sm:text-xl font-bold text-warm-gray flex items-center gap-2">
+              <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-coral" />
               Plan Your Ride
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <form onSubmit={onSubmit} className="space-y-6">
+          <CardContent className="px-4 sm:px-6">
+            <form onSubmit={onSubmit} className="space-y-4 sm:space-y-6">
               {/* Inputs Container */}
               <div
                 ref={inputsContainerRef}
@@ -372,7 +372,7 @@ export default function SearchPage() {
 
               <Button 
                 type="submit" 
-                className="w-full h-14 text-base font-bold shadow-xl shadow-coral/25 animate-fade-in-up delay-300" 
+                className="w-full h-12 sm:h-14 text-sm sm:text-base font-bold shadow-xl shadow-coral/25 animate-fade-in-up delay-300" 
                 disabled={isLoading || !originPlace || !destinationPlace}
               >
                 {isLoading ? (
@@ -392,17 +392,17 @@ export default function SearchPage() {
         </Card>
 
         {/* Trust indicators */}
-        <div className="mt-8 flex items-center gap-6 text-sm text-warm-gray/50 animate-fade-in-up delay-400">
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-emerald-500" />
+        <div className="mt-4 sm:mt-8 flex items-center justify-center gap-4 sm:gap-6 text-xs sm:text-sm text-warm-gray/50 animate-fade-in-up delay-400">
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-emerald-500" />
             <span>Grab</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-cyan-500" />
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-cyan-500" />
             <span>Angkas</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-indigo-500" />
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-indigo-500" />
             <span>JoyRide</span>
           </div>
         </div>

@@ -35,11 +35,11 @@ export default function RootLayout({
       >
         <UserProvider>
           <AppHeader />
-          <main className="flex-1 container mx-auto px-4 py-8">
+          <main className="flex-1 container mx-auto px-3 sm:px-4 py-4 sm:py-8 pb-20 md:pb-8">
             {children}
           </main>
         </UserProvider>
-        <footer className="border-t border-border py-8 bg-cream text-center">
+        <footer className="border-t border-border py-6 sm:py-8 bg-cream text-center hidden md:block">
           <div className="container mx-auto px-4">
             <p className="text-sm text-warm-gray/60 font-medium">
               © {new Date().getFullYear()} PH Ride Compare • Compare fares. Save time. Ride smart.
