@@ -259,7 +259,7 @@ export default function SearchPage() {
                   }
                 />
 
-                <div className={`relative ${activeField === 'origin' ? 'z-30' : 'z-20'}`}>
+                <div className="relative" style={{ zIndex: activeField === 'origin' ? 100 : 1 }}>
                   <LocationSearchInput
                     label="Pickup from?"
                     value={originPlace}
@@ -277,7 +277,7 @@ export default function SearchPage() {
                 </div>
 
                 {/* Divider with Swap Button */}
-                <div className="relative z-30 flex justify-end pr-4 -my-1 pointer-events-none">
+                <div className="relative flex justify-end pr-4 -my-1 pointer-events-none" style={{ zIndex: 50 }}>
                   <Button
                     type="button"
                     size="icon"
@@ -289,7 +289,7 @@ export default function SearchPage() {
                   </Button>
                 </div>
 
-                <div className={`relative ${activeField === 'destination' ? 'z-30' : 'z-20'} animate-fade-in-up delay-200`}>
+                <div className="relative animate-fade-in-up delay-200" style={{ zIndex: activeField === 'destination' ? 100 : 1 }}>
                   <LocationSearchInput
                     label="Drop off to?"
                     value={destinationPlace}

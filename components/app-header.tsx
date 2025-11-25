@@ -17,7 +17,7 @@ export function AppHeader() {
   const pathname = usePathname()
 
   return (
-    <header className="border-b border-border/60 bg-white/80 backdrop-blur-md sticky top-0 z-50 shadow-sm">
+    <header className="bg-transparent sticky top-0 z-50">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         {/* Logo */}
         <Link 
@@ -70,8 +70,6 @@ export function AppHeader() {
               </Button>
             )
           })}
-          
-          <div className="w-px h-8 bg-border mx-2 hidden sm:block" />
           
           <UserMenu />
         </nav>
