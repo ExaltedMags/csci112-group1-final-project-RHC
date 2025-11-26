@@ -20,7 +20,7 @@ interface HistoryEntry {
 const POPULAR_LOCATIONS = [
   "Ateneo de Manila University",
   "UP Diliman",
-  "BGC High Street",
+  "Bonifacio High Street",
   "SM Megamall",
   "NAIA Terminal 3",
 ]
