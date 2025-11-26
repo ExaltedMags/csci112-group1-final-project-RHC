@@ -5,7 +5,7 @@ import { useState, useEffect, useRef, useCallback, type FormEvent, type MouseEve
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Loader2, Navigation, ArrowUpDown, History, Sparkles, MapPin } from "lucide-react"
+import { Loader2, Navigation, ArrowUpDown, History, MapPin } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import LocationSearchInput from "@/components/location-search-input"
 import type { PlaceSuggestion } from "@/lib/mapbox"
@@ -220,7 +220,6 @@ export default function SearchPage() {
         {/* Hero Section */}
         <div className="text-center mb-4 sm:mb-8 animate-fade-in-up">
           <div className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-coral/10 text-coral text-xs sm:text-sm font-medium mb-3 sm:mb-4">
-            <Sparkles className="w-3 h-3 sm:w-4 sm:h-4" />
             <span>Compare fares. Save time (and money!)</span>
           </div>
           <h1 className="text-2xl sm:text-4xl md:text-5xl font-extrabold text-warm-gray tracking-tight mb-2 sm:mb-3">
@@ -346,7 +345,6 @@ export default function SearchPage() {
                 {/* Popular Places */}
                 <div className="space-y-2">
                   <div className="text-xs font-semibold text-warm-gray/50 uppercase tracking-wider flex items-center gap-2">
-                    <Sparkles className="w-3 h-3" />
                     Popular Destinations
                   </div>
                   <div className="flex flex-wrap gap-2">
@@ -382,7 +380,6 @@ export default function SearchPage() {
                   </>
                 ) : (
                   <>
-                    <Sparkles className="mr-2 h-5 w-5" />
                     Compare Fares
                   </>
                 )}

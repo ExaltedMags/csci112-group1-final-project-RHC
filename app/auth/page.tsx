@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Loader2, Sparkles, User, Mail } from "lucide-react"
+import { Loader2, User, Mail } from "lucide-react"
 
 export default function AuthPage() {
   const router = useRouter()
@@ -90,7 +90,6 @@ export default function AuthPage() {
       <Card className="w-full max-w-md border-0 shadow-xl shadow-warm-gray/10 bg-white animate-fade-in-up delay-100 mx-2 sm:mx-0">
         <CardHeader className="pb-2 text-center px-4 sm:px-6">
           <div className="inline-flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-coral/10 text-coral text-xs sm:text-sm font-medium mx-auto mb-2">
-            <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             <span>Welcome, Kabayan!</span>
           </div>
           <CardTitle className="text-lg sm:text-xl font-bold text-warm-gray tracking-tight">Sign In to Continue</CardTitle>
@@ -163,7 +162,6 @@ export default function AuthPage() {
                 </>
               ) : (
                 <>
-                  <Sparkles className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
                   Continue
                 </>
               )}

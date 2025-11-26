@@ -7,7 +7,7 @@ import { PROVIDER_LABELS } from "@/lib/providers/adapters"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Loader2, Clock, Car, Bike, Sparkles, MapPin, ArrowRight, Zap, Crown, ExternalLink } from "lucide-react"
+import { Loader2, Clock, Car, Bike, MapPin, ArrowRight, Zap, Crown, ExternalLink } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { getProviderTheme } from "@/lib/provider-theme"
 import { ProviderLogo } from "@/components/provider-logo"
@@ -65,7 +65,6 @@ export default function TripView({ trip }: TripViewProps) {
       {/* Header Section */}
       <div className="text-center space-y-3 sm:space-y-4 animate-fade-in-up">
         <div className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-teal/10 text-teal text-xs sm:text-sm font-medium">
-          <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           <span>{trip.quotes.length} rides found</span>
         </div>
         <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-tight text-warm-gray">

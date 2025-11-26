@@ -39,7 +39,6 @@ import {
   Trophy,
   ChevronDown,
   BarChart3,
-  Sparkles,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -434,9 +433,6 @@ export default function AnalyticsView({ data }: AnalyticsViewProps) {
                   className="flex flex-col gap-1 text-left cursor-pointer group"
                 >
                   <div className="flex items-center gap-2">
-                    <div className="p-1.5 sm:p-2 rounded-lg bg-coral/10">
-                      <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-coral" />
-                    </div>
                     <CardTitle className="text-sm sm:text-lg group-hover:text-coral transition-colors" id="insights-title">
                       Key Insights
                     </CardTitle>
