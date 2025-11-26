@@ -2,11 +2,12 @@
 
 import { useState, useMemo, type FormEvent } from "react"
 import { useRouter } from "next/navigation"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Loader2, MapPin, Sparkles, User, Mail } from "lucide-react"
+import { Loader2, Sparkles, User, Mail } from "lucide-react"
 
 export default function AuthPage() {
   const router = useRouter()
@@ -69,10 +70,13 @@ export default function AuthPage() {
       <div className="text-center mb-5 sm:mb-8 animate-fade-in-up">
         <div className="inline-flex items-center gap-2.5 mb-3 sm:mb-4">
           <div className="relative">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-coral flex items-center justify-center shadow-lg shadow-coral/30">
-              <MapPin className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-            </div>
-            <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-teal border-2 border-white" />
+            <Image 
+              src="/app-logo.png" 
+              alt="PH Ride Compare Logo" 
+              width={48} 
+              height={48} 
+              className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl shadow-lg shadow-coral/30 object-contain"
+            />
           </div>
         </div>
         <h1 className="text-2xl sm:text-3xl font-extrabold text-warm-gray tracking-tight">

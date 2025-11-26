@@ -1,11 +1,12 @@
 "use client"
 
 import Link from "next/link"
+import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { UserMenu } from "@/components/user-menu"
-import { Search, History, BarChart3, MapPin } from "lucide-react"
+import { Search, History, BarChart3 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const navItems = [
@@ -64,10 +65,13 @@ export function AppHeader() {
             className="flex items-center gap-2.5 group"
           >
             <div className="relative">
-              <div className="w-9 h-9 rounded-xl bg-gradient-coral flex items-center justify-center shadow-md shadow-coral/20 group-hover:shadow-lg group-hover:shadow-coral/30 transition-shadow">
-                <MapPin className="w-5 h-5 text-white" />
-              </div>
-              <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-teal border-2 border-white" />
+              <Image 
+                src="/app-logo.png" 
+                alt="PH Ride Compare Logo" 
+                width={36} 
+                height={36} 
+                className="w-9 h-9 rounded-xl shadow-md shadow-coral/20 group-hover:shadow-lg group-hover:shadow-coral/30 transition-shadow object-contain"
+              />
             </div>
             <div className="flex flex-col">
               <span className="font-bold text-lg tracking-tight text-warm-gray leading-tight">
@@ -123,10 +127,13 @@ export function AppHeader() {
             className="flex items-center gap-2 group"
           >
             <div className="relative">
-              <div className="w-8 h-8 rounded-lg bg-gradient-coral flex items-center justify-center shadow-md shadow-coral/20">
-                <MapPin className="w-4 h-4 text-white" />
-              </div>
-              <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-teal border-2 border-white" />
+              <Image 
+                src="/app-logo.png" 
+                alt="PH Ride Compare Logo" 
+                width={32} 
+                height={32} 
+                className="w-8 h-8 rounded-lg shadow-md shadow-coral/20 object-contain"
+              />
             </div>
             <span className="font-bold text-base tracking-tight text-warm-gray">
               PH Ride Compare
