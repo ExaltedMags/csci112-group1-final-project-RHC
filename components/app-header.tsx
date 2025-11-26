@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { UserMenu } from "@/components/user-menu"
 import { Search, History, BarChart3, MapPin } from "lucide-react"
@@ -19,8 +20,6 @@ export function AppHeader() {
   // Don't show bottom nav on progress/handoff pages (they have their own nav)
   const hideBottomNav = pathname.includes("/progress") || pathname.includes("/handoff")
 
-<<<<<<< Updated upstream
-=======
   const navContainerRef = useRef<HTMLDivElement>(null)
   const navItemRefs = useRef<(HTMLAnchorElement | null)[]>([])
   const [underlineStyle, setUnderlineStyle] = useState({ width: 0, left: 0 })
@@ -54,8 +53,6 @@ export function AppHeader() {
     window.addEventListener("resize", updateUnderline)
     return () => window.removeEventListener("resize", updateUnderline)
   }, [activeNavIndex, pathname])
-
->>>>>>> Stashed changes
   return (
     <>
       {/* Desktop Header - Hidden on mobile */}
@@ -84,9 +81,8 @@ export function AppHeader() {
 
           {/* Desktop Navigation */}
           <nav className="flex items-center gap-1">
-            {navItems.map((item) => {
-              const isActive = pathname === item.href || 
-                (item.href !== "/" && pathname.startsWith(item.href))
+            {navItems.map((item, index) => {
+              const isActive = activeNavIndex === index
               const Icon = item.icon
 
               return (
@@ -142,44 +138,55 @@ export function AppHeader() {
       {/* Mobile Bottom Navigation Bar */}
       {!hideBottomNav && (
         <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-white border-t border-border/60 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
-          <div className="flex items-center justify-around h-16 px-2 max-w-md mx-auto">
-            {navItems.map((item) => {
-              const isActive = pathname === item.href || 
-                (item.href !== "/" && pathname.startsWith(item.href))
-              const Icon = item.icon
+          <div className="flex items-center h-16 px-2 max-w-md mx-auto gap-2">
+            <div className="relative flex flex-1 items-center justify-between gap-2" ref={navContainerRef}>
+              {navItems.map((item, index) => {
+                const isActive = activeNavIndex === index
+                const Icon = item.icon
 
-              return (
-                <Link 
-                  key={item.href}
-                  href={item.href} 
-                  className={cn(
-                    "flex flex-col items-center justify-center gap-1 flex-1 py-2 rounded-xl transition-all",
-                    isActive 
-                      ? "text-coral" 
-                      : "text-warm-gray/50 hover:text-warm-gray/70 active:bg-coral/5"
-                  )}
-                >
-                  <div className={cn(
-                    "p-1.5 rounded-lg transition-colors",
-                    isActive && "bg-coral/10"
-                  )}>
-                    <Icon className="w-5 h-5" />
-                  </div>
-                  <span className={cn(
-                    "text-[10px] font-semibold tracking-wide",
-                    isActive && "text-coral"
-                  )}>
-                    {item.label}
-                  </span>
-                  {isActive && (
-                    <div className="absolute bottom-1 w-8 h-1 bg-coral rounded-full" />
-                  )}
-                </Link>
-              )
-            })}
-            
+                return (
+                  <Link 
+                    key={item.href}
+                    href={item.href} 
+                    ref={(el) => (navItemRefs.current[index] = el)}
+                    className={cn(
+                      "flex flex-col items-center justify-center gap-1 flex-1 py-2 rounded-xl transition-all",
+                      isActive 
+                        ? "text-coral" 
+                        : "text-warm-gray/50 hover:text-warm-gray/70 active:bg-coral/5"
+                    )}
+                  >
+                    <div className={cn(
+                      "p-1.5 rounded-lg transition-colors",
+                      isActive && "bg-coral/10"
+                    )}>
+                      <Icon className="w-5 h-5" />
+                    </div>
+                    <span className={cn(
+                      "text-[10px] font-semibold tracking-wide",
+                      isActive && "text-coral"
+                    )}>
+                      {item.label}
+                    </span>
+                  </Link>
+                )
+              })}
+
+              {underlineStyle.width > 0 && (
+                <div 
+                  className="absolute bottom-1 h-1 bg-coral rounded-full transition-[transform,width] duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] pointer-events-none"
+                  style={{
+                    width: underlineStyle.width,
+                    transform: `translateX(${underlineStyle.left}px)`
+                  }}
+                />
+              )}
+            </div>
+
             {/* Profile in bottom nav */}
-            <UserMenu isMobileNav />
+            <div className="flex items-center justify-center min-w-[64px]">
+              <UserMenu isMobileNav />
+            </div>
           </div>
         </nav>
       )}
