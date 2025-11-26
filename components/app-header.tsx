@@ -155,7 +155,7 @@ export function AppHeader() {
                   <Link 
                     key={item.href}
                     href={item.href} 
-                    ref={(el) => (navItemRefs.current[index] = el)}
+                    ref={(el) => { navItemRefs.current[index] = el; }}
                     className={cn(
                       "flex flex-col items-center justify-center gap-1 flex-1 py-2 rounded-xl transition-all",
                       isActive 
