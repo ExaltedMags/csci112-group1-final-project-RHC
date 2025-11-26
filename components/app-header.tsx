@@ -19,6 +19,43 @@ export function AppHeader() {
   // Don't show bottom nav on progress/handoff pages (they have their own nav)
   const hideBottomNav = pathname.includes("/progress") || pathname.includes("/handoff")
 
+<<<<<<< Updated upstream
+=======
+  const navContainerRef = useRef<HTMLDivElement>(null)
+  const navItemRefs = useRef<(HTMLAnchorElement | null)[]>([])
+  const [underlineStyle, setUnderlineStyle] = useState({ width: 0, left: 0 })
+
+  const activeNavIndex = navItems.findIndex(
+    (item) => pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href))
+  )
+
+  useEffect(() => {
+    const updateUnderline = () => {
+      if (activeNavIndex === -1) {
+        setUnderlineStyle((prev) => (prev.width === 0 ? prev : { width: 0, left: prev.left }))
+        return
+      }
+
+      const container = navContainerRef.current
+      const target = navItemRefs.current[activeNavIndex]
+
+      if (!container || !target) return
+
+      const containerRect = container.getBoundingClientRect()
+      const targetRect = target.getBoundingClientRect()
+
+      const targetWidth = Math.max(30, Math.min(targetRect.width - 12, 60))
+      const left = targetRect.left - containerRect.left + (targetRect.width - targetWidth) / 2
+
+      setUnderlineStyle({ width: targetWidth, left })
+    }
+
+    updateUnderline()
+    window.addEventListener("resize", updateUnderline)
+    return () => window.removeEventListener("resize", updateUnderline)
+  }, [activeNavIndex, pathname])
+
+>>>>>>> Stashed changes
   return (
     <>
       {/* Desktop Header - Hidden on mobile */}
