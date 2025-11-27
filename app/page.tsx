@@ -10,6 +10,8 @@ import { Badge } from "@/components/ui/badge"
 import LocationSearchInput from "@/components/location-search-input"
 import type { PlaceSuggestion } from "@/lib/mapbox"
 import { AuthGuard } from "@/components/auth-guard"
+import { ProviderLogo } from "@/components/provider-logo"
+import { getProviderTheme } from "@/lib/provider-theme"
 
 interface HistoryEntry {
   originName: string;
@@ -391,15 +393,15 @@ export default function SearchPage() {
         {/* Trust indicators */}
         <div className="mt-4 sm:mt-8 flex items-center justify-center gap-4 sm:gap-6 text-xs sm:text-sm text-warm-gray/50 animate-fade-in-up delay-400">
           <div className="flex items-center gap-1.5 sm:gap-2">
-            <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-emerald-500" />
+            <ProviderLogo theme={getProviderTheme("GrabPH")} size={20} className="w-5 h-5 sm:w-6 sm:h-6" />
             <span>Grab</span>
           </div>
           <div className="flex items-center gap-1.5 sm:gap-2">
-            <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-cyan-500" />
+            <ProviderLogo theme={getProviderTheme("Angkas")} size={20} className="w-5 h-5 sm:w-6 sm:h-6" />
             <span>Angkas</span>
           </div>
           <div className="flex items-center gap-1.5 sm:gap-2">
-            <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-indigo-500" />
+            <ProviderLogo theme={getProviderTheme("JoyRideMC")} size={20} className="w-5 h-5 sm:w-6 sm:h-6" />
             <span>JoyRide</span>
           </div>
         </div>

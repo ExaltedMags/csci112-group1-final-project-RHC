@@ -8,6 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Loader2, User, Mail } from "lucide-react"
+import { ProviderLogo } from "@/components/provider-logo"
+import { getProviderTheme } from "@/lib/provider-theme"
 
 export default function AuthPage() {
   const router = useRouter()
@@ -177,15 +179,15 @@ export default function AuthPage() {
       {/* Trust indicators */}
       <div className="mt-5 sm:mt-8 flex items-center justify-center gap-4 sm:gap-6 text-xs sm:text-sm text-warm-gray/50 animate-fade-in-up delay-300">
         <div className="flex items-center gap-1.5 sm:gap-2">
-          <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-emerald-500" />
+          <ProviderLogo theme={getProviderTheme("GrabPH")} size={20} className="w-5 h-5 sm:w-6 sm:h-6" />
           <span>Grab</span>
         </div>
         <div className="flex items-center gap-1.5 sm:gap-2">
-          <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-cyan-500" />
+          <ProviderLogo theme={getProviderTheme("Angkas")} size={20} className="w-5 h-5 sm:w-6 sm:h-6" />
           <span>Angkas</span>
         </div>
         <div className="flex items-center gap-1.5 sm:gap-2">
-          <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-indigo-500" />
+          <ProviderLogo theme={getProviderTheme("JoyRideMC")} size={20} className="w-5 h-5 sm:w-6 sm:h-6" />
           <span>JoyRide</span>
         </div>
       </div>
